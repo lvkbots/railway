@@ -127,20 +127,30 @@ logger = logging.getLogger(__name__)
 class BotHandler:
     def __init__(self, db_manager):
         self.db_manager = db_manager
-        self.last_broadcast_time = datetime.now()
+
+    async def start(self, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Démarre les tâches d'envoi en parallèle pour :
+          - Le signal de trading (toutes les ~10 secondes)
+          - L'annonce du Marathon (toutes les ~2 heures)
+          - Le message Bill Gates (toutes les ~30 secondes)
+        """
+        asyncio.create_task(self.auto_broadcast_signal(context))
+        asyncio.create_task(self.auto_broadcast_marathon(context))
+        asyncio.create_task(self.auto_broadcast_bill_gates(context))
 
     async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
         """Envoie automatiquement un signal de trading toutes les 10 secondes (+/- 1 seconde)"""
         while True:
             try:
-                # Attendre 10 secondes avec une marge aléatoire de +/- 1 seconde pour chaque signal
                 wait_time = 10 + random.uniform(-1, 1)
                 await asyncio.sleep(wait_time)
-                
-                coefficient = generate_random_coefficient()
+
+                # Cette fonction doit être définie ailleurs dans votre code.
+                coefficient = generate_random_coefficient()  
                 mise = 3000
                 gain = round(coefficient * mise, 2)
-                
+
                 message = (
                     f"🚀 **SIGNAL TOUR SUIVANT Aviator Prediction** 📈\n\n"
                     f"🎯 Le coefficient pour ce tour est de **{coefficient}x**.\n\n"
@@ -149,7 +159,7 @@ class BotHandler:
                     f"⏰ **Heure actuelle** : {datetime.now().strftime('%H:%M:%S')}\n\n"
                     '💬 **Envoie-moi le mot "BOT" par SMS @moustaphalux** pour récupérer le bot gratuitement !\n'
                 )
-                
+
                 image_url = 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
                 user_ids = await self.db_manager.get_all_users()
                 for user_id in user_ids:
@@ -163,93 +173,91 @@ class BotHandler:
                             chat_id=user_id,
                             photo=image_url
                         )
-                        await asyncio.sleep(0.1)  # Petite pause entre chaque envoi
+                        await asyncio.sleep(0.1)  # Pause entre chaque envoi
                     except Exception as e:
-                        logger.error(f"Erreur d'envoi à {user_id}: {e}")
-                
+                        logger.error(f"Erreur d'envoi (signal) à {user_id} : {e}")
             except Exception as e:
-                logger.error(f"Erreur dans auto_broadcast_signal: {e}")
-                await asyncio.sleep(5)  # Attendre en cas d'erreur
+                logger.error(f"Erreur dans auto_broadcast_signal : {e}")
+                await asyncio.sleep(5)
 
     async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
-        """Envoie automatiquement l'annonce du Marathon Gagnant-Gagnant toutes les 2 heures (+/- 60 secondes)"""
-        try:
-            # Attente avec une marge aléatoire de +/- 60 secondes
-            wait_time = 20 + random.uniform(-10, 10)
-            await asyncio.sleep(wait_time)
+        """Envoie l'annonce du Marathon Gagnant-Gagnant toutes les 2 heures (+/- 60 secondes)"""
+        while True:
+            try:
+                wait_time = 20 + random.uniform(-60, 60)
+                await asyncio.sleep(wait_time)
 
-            message = (
-                "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
-                "🔥 **Objectif** : Faire gagner **50 000 FCFA** à chaque participant **AUJOURD’HUI** !\n\n"
-                "⏳ **Durée** : 1 heure\n\n"
-                "📹 **Je vous guiderai personnellement avec une liaison vidéo !**\n\n"
-                "💬 **Envoyez-moi 'MARATHON'** pour participer !\n\n"
-                "@moustaphalux @moustaphalux @moustaphalux"
-            )
+                message = (
+                    "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
+                    "🔥 **Objectif** : Faire gagner **50 000 FCFA** à chaque participant **AUJOURD’HUI** !\n\n"
+                    "⏳ **Durée** : 1 heure\n\n"
+                    "📹 **Je vous guiderai personnellement avec une liaison vidéo !**\n\n"
+                    "💬 **Envoyez-moi 'MARATHON'** pour participer !\n\n"
+                    "@moustaphalux @moustaphalux @moustaphalux"
+                )
 
-            image_url = "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
-            user_ids = await self.db_manager.get_all_users()
-
-            for user_id in user_ids:
-                try:
-                    await context.bot.send_message(
-                        chat_id=user_id,
-                        text=message,
-                        parse_mode="Markdown"
-                    )
-                    await context.bot.send_photo(
-                        chat_id=user_id,
-                        photo=image_url
-                    )
-                    await asyncio.sleep(0.1)  # Petite pause entre chaque envoi
-                except Exception as e:
-                    logger.error(f"Erreur d'envoi à {user_id}: {e}")
-
-        except Exception as e:
-            logger.error(f"Erreur dans auto_broadcast_marathon: {e}")
-            await asyncio.sleep(60)  # Attendre 1 minute avant de réessayer en cas d'erreur
+                image_url = "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
+                user_ids = await self.db_manager.get_all_users()
+                for user_id in user_ids:
+                    try:
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=message,
+                            parse_mode="Markdown"
+                        )
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=image_url
+                        )
+                        await asyncio.sleep(0.1)
+                    except Exception as e:
+                        logger.error(f"Erreur d'envoi (marathon) à {user_id} : {e}")
+            except Exception as e:
+                logger.error(f"Erreur dans auto_broadcast_marathon : {e}")
+                await asyncio.sleep(60)
 
     async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
-        """Envoie un message promotionnel à propos de Bill Gates toutes les 30 secondes"""
-        try:
-            # Attente de 30 secondes pour chaque envoi
-            wait_time = 30 + random.uniform(-1, 1)
-            await asyncio.sleep(wait_time)
+        """Envoie un message promotionnel à propos de Bill Gates toutes les 30 secondes (+/- 1 seconde)
+           en personnalisant le message avec le prénom de l'utilisateur.
+        """
+        while True:
+            try:
+                wait_time = 30 + random.uniform(-1, 1)
+                await asyncio.sleep(wait_time)
 
-            # Récupérer le prénom de l'utilisateur
-            user = await context.bot.get_chat_member(chat_id=context.bot.id, user_id=user_id)
-            first_name = user['user'].get('first_name', 'Ami')  # Utilise 'Ami' par défaut si pas de prénom
+                base_message = (
+                    "Vous avez besoin d'argent? Alors écris-moi @moustaphaluxe je t'expliquerai comment fonctionne mon programme.\n\n"
+                    "Dépêchez-vous !!! Parce qu'il y a tellement de gens qui le veulent !\n\n"
+                    "@moustaphalux\n\n"
+                    "@moustaphalux\n\n"
+                    "@moustaphalux"
+                )
 
-            message = (
-                f"Salut {first_name}!\n\n"  # Inclure le prénom de l'utilisateur ici
-                "Vous avez besoin d'argent? Alors écris-moi @moustaphaluxe je t'expliquerai comment fonctionne mon programme.\n\n"
-                "Dépêchez-vous !!! Parce qu'il y a tellement de gens qui le veulent !\n\n"
-                "@moustaphalux\n\n"
-                "@moustaphalux\n\n"
-                "@moustaphalux"
-            )
+                image_url = "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
+                user_ids = await self.db_manager.get_all_users()
+                for user_id in user_ids:
+                    try:
+                        # Récupère le prénom de l'utilisateur via get_chat()
+                        chat = await context.bot.get_chat(user_id)
+                        first_name = chat.first_name if chat.first_name else "Ami"
+                        message = f"Salut {first_name}!\n\n" + base_message
 
-            image_url = "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
-            user_ids = await self.db_manager.get_all_users()
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=message,
+                            parse_mode="Markdown"
+                        )
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=image_url
+                        )
+                        await asyncio.sleep(0.1)
+                    except Exception as e:
+                        logger.error(f"Erreur d'envoi (Bill Gates) à {user_id} : {e}")
+            except Exception as e:
+                logger.error(f"Erreur dans auto_broadcast_bill_gates : {e}")
+                await asyncio.sleep(30)
 
-            for user_id in user_ids:
-                try:
-                    await context.bot.send_message(
-                        chat_id=user_id,
-                        text=message,
-                        parse_mode="Markdown"
-                    )
-                    await context.bot.send_photo(
-                        chat_id=user_id,
-                        photo=image_url
-                    )
-                    await asyncio.sleep(0.1)  # Petite pause entre chaque envoi
-                except Exception as e:
-                    logger.error(f"Erreur d'envoi à {user_id}: {e}")
-
-        except Exception as e:
-            logger.error(f"Erreur dans auto_broadcast_bill_gates: {e}")
-            await asyncio.sleep(30)  # Attendre avant de réessayer en cas d'erreur
 
 
 
