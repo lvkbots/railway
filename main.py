@@ -135,12 +135,12 @@ class BotHandler:
                 
                 # Message mis à jour avec le nouveau format
                 message = (
-                    f"🚀 **Signal de Trading Aviator Prediction** 📈\n\n"
-                    f"🎯 Le coefficient pour le prochain tour est de **{coefficient}x**.\n"
-                    f"💸 Imaginez que vous ayez misé **{mise} $** et qu'en 1 tour vous obteniez **{gain} $** ! 💰\n"
-                    f"⚡️ Un seul jeu en **20 minutes** ⏱️.\n"
+                    f"🚀 **SIGNAL TOUR SUIVANT Aviator Prediction** 📈\n\n"
+                    f"🎯 Le coefficient pour ce tour est de **{coefficient}x**.\n\n"
+                    f"💸 Imagine si tu avais misé **{mise} FCFA** et que tu gagnes **{gain} FCFA** ! 💰\n" 
+                    f"⚡️ Viens récupérer le hack pour le **tour suivant** ! ⏱️\n\n"
                     f"⏰ **Heure actuelle** : {datetime.now().strftime('%H:%M:%S')}\n\n"
-                    '💬 **Envoyez-moi le mot "BOT" par SMS @moustaphalux** pour plus d\'infos !\n'
+                    '💬 **Envoie-moi le mot "BOT" par SMS @moustaphalux** pour récupérer le bot gratuitement !\n'
                 )
                 
                 # URL de l'image
@@ -149,12 +149,16 @@ class BotHandler:
                 user_ids = await self.db_manager.get_all_users()
                 for user_id in user_ids:
                     try:
-                        # Envoyer l'image suivie du message
+                        # Envoyer d'abord le message, puis l'image
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=message,
+                            parse_mode='Markdown'
+                        )
                         await context.bot.send_photo(
                             chat_id=user_id,
                             photo=image_url,
-                            caption=message,
-                            parse_mode='Markdown'
+                            caption='📸 Illustration du signal en cours.',
                         )
                         await asyncio.sleep(0.1)  # Petit délai entre chaque envoi
                     except Exception as e:
