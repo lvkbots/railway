@@ -320,7 +320,7 @@ async def main():
         await application.run_polling()
         
     except Exception as e:
-        logger.critical(f"logger.critical(f"Erreur fatale: {e}")
+        logger.critical(f"Erreur fatale: {e}")
         raise
 
 if __name__ == "__main__":
