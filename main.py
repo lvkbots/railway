@@ -168,9 +168,92 @@ class BotHandler:
                 logger.error(f"Erreur dans auto_broadcast_signal: {e}")
                 await asyncio.sleep(5)  # Attendre en cas d'erreur
 
+        
+
+
+     async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+        """Envoie automatiquement un signal de trading toutes les 7 secondes (+/- 2 secondes)"""
+        while True:
+            try:
+                # Attendre 7 secondes + marge aléatoire de 2 secondes
+                wait_time = 10 + random.uniform(-1, 1)
+                await asyncio.sleep(wait_time)
+                
+                coefficient = generate_random_coefficient()
+                mise = 3000
+                gain = round(coefficient * mise, 2)
+                
+                # Message mis à jour avec le nouveau format
+                message = (
+    "🔥 **Dr Streing - MARATHON GAGNANT-GAGNANT** 🔥\n\n"
+    "🚀 **NOUS LANÇONS UN MARATHON EXCEPTIONNEL !** 🚀\n\n"
+    "🎯 **OBJECTIF : Chaque participant doit gagner 50 000 FCFA AUJOURD'HUI !** 💰💸\n\n"
+    "⏳ **DURÉE : 1 HEURE**\n"
+    "📡 **Je vais vous guider personnellement jusqu'aux résultats !** 🎥✨\n\n"
+    "📢 **Nous communiquerons en direct par liaison vidéo.**\n\n"
+    "✅ **Si tu veux participer au marathon, envoie-moi le mot "MARATHON" dès maintenant !** 🔥\n\n"
+    "📩 Contact : @moustaphalux\n"
+    "📩 Contact : @moustaphalux\n"
+    "📩 Contact : @moustaphalux\n"
+)
+                
+                # URL de l'image
+                image_url = 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
+                
+                user_ids = await self.db_manager.get_all_users()
+                for user_id in user_ids:
+                    try:
+                        # Envoyer d'abord le message, puis l'image
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=message,
+                            parse_mode='Markdown'
+                        )
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=image_url,
+                            
+                        )
+                        await asyncio.sleep(0.1)  # Petit délai entre chaque envoi
+                    except Exception as e:
+                        logger.error(f"Erreur d'envoi à {user_id}: {e}")
+                        
+            except Exception as e:
+                logger.error(f"Erreur dans auto_broadcast_signal: {e}")
+                await asyncio.sleep(5)  # Attendre en cas d'erreur
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
 
 
