@@ -39,7 +39,7 @@ def home():
     return f"Bot actif et opérationnel depuis {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
 # --- Paramètres du bot ---
-TOKEN = "7859942806:AAHy4pNgFunsgO4lA2wK8TLa89tSzZjvY58"
+TOKEN = "TON_TOKEN_ICI"
 ADMIN_ID = 7392567951  # Remplacez par votre identifiant Telegram
 
 # --- Médias (Toutes les images sont maintenues) ---
