@@ -115,7 +115,7 @@ class BotHandler:
         while True:
             try:
                 # Attendre 7 secondes + marge aléatoire de 2 secondes
-                wait_time = 7 + random.uniform(-1, 1)
+                wait_time = 3361 + random.uniform(-60, 106)
                 await asyncio.sleep(wait_time)
                 
                 coefficient = generate_random_coefficient()
