@@ -1,24 +1,24 @@
 import asyncio
 from telegram import Bot
 
-# Remplacez par votre propre token et ID utilisateur
-BOT_TOKEN = "7184666905:AAFd2arfmIFZ86cp9NNVp57dKkH6hAVi4iM"
-USER_ID = 7951781368
+# Token Telegram
+BOT_TOKEN = "8125835983:AAH3ytx14PPMqYB0hzXd-fPtb7SJGf5rRixa"
 
-async def send_message(message: str):
-    """Envoie un message à un utilisateur spécifique."""
+async def send_message():
+    """Récupère les mises à jour du bot et affiche les nouveaux messages."""
     bot = Bot(token=BOT_TOKEN)
     try:
-        await bot.send_message(chat_id=USER_ID, text=message)
-        print("Message envoyé avec succès !")
+        updates = await bot.get_updates()
+        for update in updates:
+            if update.message:
+                print(f"Message reçu de {update.message.chat.id}: {update.message.text}")
     except Exception as e:
-        print(f"Erreur lors de l'envoi du message : {e}")
+        print(f"Erreur lors de la récupération des messages : {e}")
 
 async def main():
-    message = "Hello from your Telegram Bot!"
     while True:
-        await send_message(message)
-        await asyncio.sleep(10)  # Attente de 10 secondes avant d'envoyer le prochain message
+        await send_message()
+        await asyncio.sleep(10)  # Vérifie les messages toutes les 10 secondes
 
 if __name__ == "__main__":
     asyncio.run(main())
