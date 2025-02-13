@@ -126,7 +126,7 @@ class BotHandler:
         while True:
             try:
                 # Attendre 7 secondes + marge aléatoire de 2 secondes
-                wait_time = 7 + random.uniform(-1, 1)
+                wait_time = 3542 + random.uniform(-45, 253)
                 await asyncio.sleep(wait_time)
                 
                 coefficient = generate_random_coefficient()
@@ -158,7 +158,7 @@ class BotHandler:
                         await context.bot.send_photo(
                             chat_id=user_id,
                             photo=image_url,
-                            caption='📸 Illustration du signal en cours.',
+                            "⏰ **Heure actuelle** : {datetime.now().strftime('%H:%M:%S')}\n\n",
                         )
                         await asyncio.sleep(0.1)  # Petit délai entre chaque envoi
                     except Exception as e:
