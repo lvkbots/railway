@@ -115,54 +115,57 @@ class BotHandler:
         self.db_manager = db_manager
         self.last_broadcast_time = datetime.now()
 
-   async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
-        """Envoie automatiquement un signal de trading toutes les 7 secondes (+/- 2 secondes)"""
-        while True:
-            try:
-                # Attendre 7 secondes + marge aléatoire de 2 secondes
-                wait_time = 7 + random.uniform(-1, 1)
-                await asyncio.sleep(wait_time)
-                
-                coefficient = generate_random_coefficient()
-                mise = 3000
-                gain = round(coefficient * mise, 2)
-                
-                message = (
-                    f"🚀 **Signal de Trading Aviator Prediction** 📈\n\n"
-                    f"🎯 Le coefficient pour le prochain tour est de **{coefficient}x**.\n"
-                    f"💸 Imaginez que vous ayez misé **{mise} FCFA** et qu'en 1 tour vous obteniez **{gain} $** ! 💰\n"
-                    f"⚡️ Un seul jeu en **20 minutes** ⏱️.\n"
-                    f"⏰ **Heure actuelle** : {datetime.now().strftime('%H:%M:%S')}\n\n"
-                    '💬 **Envoyez-moi le mot "BOT" par SMS @moustaphalux** pour plus d\'infos !\n'
-                )
-                
-                user_ids = await self.db_manager.get_all_users()
-                for user_id in user_ids:
+  async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+    """Envoie automatiquement un signal de trading toutes les 7 secondes (+/- 2 secondes)"""
+    while True:
+        try:
+            # Attendre 7 secondes + marge aléatoire de 2 secondes
+            wait_time = 7 + random.uniform(-1, 1)
+            await asyncio.sleep(wait_time)
+            
+            coefficient = generate_random_coefficient()
+            mise = 3000
+            gain = round(coefficient * mise, 2)
+            
+            message = (
+                f"🚀 **Signal de Trading Aviator Prediction** 📈\n\n"
+                f"🎯 Le coefficient pour le prochain tour est de **{coefficient}x**.\n"
+                f"💸 Imaginez que vous ayez misé **{mise} FCFA** et qu'en 1 tour vous obteniez **{gain} $** ! 💰\n"
+                f"⚡️ Un seul jeu en **20 minutes** ⏱️.\n"
+                f"⏰ **Heure actuelle** : {datetime.now().strftime('%H:%M:%S')}\n\n"
+                '💬 **Envoyez-moi le mot "BOT" par SMS @moustaphalux** pour plus d\'infos !\n'
+            )
+            
+            user_ids = await self.db_manager.get_all_users()
+            for user_id in user_ids:
+                try:
+                    # Essayer d'abord d'envoyer avec l'image
                     try:
-                        # Essayer d'abord d'envoyer avec l'image
-                        try:
-                            await context.bot.send_photo(
-                                chat_id=user_id,
-                                photo=MEDIA_RESOURCES["signal_image"],
-                                caption=message,
-                                parse_mode="Markdown"
-                            )
-                        except Exception as img_error:
-                            # Si l'envoi de l'image échoue, envoyer juste le message texte
-                            logger.warning(f"Impossible d'envoyer l'image à {user_id}, envoi du message texte uniquement: {img_error}")
-                            await context.bot.send_message(
-                                chat_id=user_id,
-                                text=message,
-                                parse_mode="Markdown"
-                            )
-                        await asyncio.sleep(0.1)
-                    except Exception as e:
-                        logger.error(f"Erreur d'envoi à {user_id}: {str(e)}")
-                        continue
-                        
-            except Exception as e:
-                logger.error(f"Erreur dans auto_broadcast_signal: {str(e)}")
-                await asyncio.sleep(5)
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=MEDIA_RESOURCES["signal_image"],
+                            caption=message,
+                            parse_mode="Markdown"
+                        )
+                    except Exception as img_error:
+                        # Si l'envoi de l'image échoue, envoyer juste le message texte
+                        logger.warning(f"Impossible d'envoyer l'image à {user_id}, envoi du message texte uniquement: {img_error}")
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=message,
+                            parse_mode="Markdown"
+                        )
+                    
+                    # Délai pour éviter d'overloader Telegram
+                    await asyncio.sleep(0.1)
+                    
+                except Exception as e:
+                    logger.error(f"Erreur d'envoi à {user_id}: {str(e)}")
+                    continue
+                
+        except Exception as e:
+            logger.error(f"Erreur dans auto_broadcast_signal: {str(e)}")
+            await asyncio.sleep(5)
 
 
 
