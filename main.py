@@ -43,7 +43,7 @@ MEDIA_RESOURCES = {
     "intro_video": "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
     "main_image": "https://i.ytimg.com/vi/KolFup7TxOM/hq720.jpg",
     "bottom_image": "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png",
-   "signal_image": "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png"
+   "signal_image": "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png",
     "payment_proofs": [
         "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
         "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
