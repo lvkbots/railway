@@ -121,7 +121,7 @@ class BotHandler:
         self.db_manager = db_manager
         self.last_broadcast_time = datetime.now()
 
-    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+    async def auto_broadcast_signal_prediction(self, context: ContextTypes.DEFAULT_TYPE):
         """Envoie automatiquement un signal de trading toutes les 10 secondes (+/- 1 seconde)"""
         while True:
             try:
@@ -160,14 +160,14 @@ class BotHandler:
                         logger.error(f"Erreur d'envoi à {user_id}: {e}")
                         
             except Exception as e:
-                logger.error(f"Erreur dans auto_broadcast_signal: {e}")
+                logger.error(f"Erreur dans auto_broadcast_signal_prediction: {e}")
                 await asyncio.sleep(5)  # Attendre en cas d'erreur
 
-    async def auto_broadcast_signal2(self, context: ContextTypes.DEFAULT_TYPE):
-        """Envoie automatiquement un signal de trading toutes les 10 secondes (+/- 1 seconde)"""
+    async def auto_broadcast_signal_marathon(self, context: ContextTypes.DEFAULT_TYPE):
+        """Envoie automatiquement un signal de trading toutes les 15 secondes (+/- 1 seconde)"""
         while True:
             try:
-                # Attendre 10 secondes avec une marge aléatoire de +/- 1 seconde
+                # Attendre 15 secondes avec une marge aléatoire de +/- 1 seconde
                 wait_time = 15 + random.uniform(-1, 1)
                 await asyncio.sleep(wait_time)
                 
@@ -202,8 +202,9 @@ class BotHandler:
                         logger.error(f"Erreur d'envoi à {user_id}: {e}")
                         
             except Exception as e:
-                logger.error(f"Erreur dans auto_broadcast_signal: {e}")
+                logger.error(f"Erreur dans auto_broadcast_signal_marathon: {e}")
                 await asyncio.sleep(5)  # Attendre en cas d'erreur
+
 
 
 
