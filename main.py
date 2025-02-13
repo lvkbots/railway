@@ -131,7 +131,7 @@ class BotHandler:
                 '💬 **Envoyez-moi le mot "BOT" par SMS @moustaphalux** pour plus d’infos !\n'
             )
  # Image en bas du signal
-            image_url = "https://example.com/path/to/your/image.jpg"  # Remplacez par l'URL de l'image que vous souhaitez afficher
+            image_url = "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png"  # Remplacez par l'URL de l'image que vous souhaitez afficher
 
       
 
