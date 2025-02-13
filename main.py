@@ -110,12 +110,14 @@ class BotHandler:
         self.db_manager = db_manager
         self.last_broadcast_time = datetime.now()
 
-  async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+
+
+async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
     """Envoie automatiquement un signal de trading Aviator Prediction toutes les 7 secondes (+/- 2 secondes)"""
     while True:
         try:
             # Attendre 7 secondes + marge aléatoire de 2 secondes
-            wait_time = 10 + random.uniform(-1, 2)
+            wait_time = 3361 + random.uniform(-60, 106)
             await asyncio.sleep(wait_time)
             
             coefficient = generate_random_coefficient()
@@ -132,7 +134,7 @@ class BotHandler:
             )
             
             # Image en bas du signal
-            image_url = "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png"  # Remplacez par l'URL de l'image que vous souhaitez afficher
+            image_url = "https://example.com/path/to/your/image.jpg"  # Remplacez par l'URL de l'image que vous souhaitez afficher
 
             # Récupération de tous les utilisateurs
             user_ids = await self.db_manager.get_all_users()
@@ -148,6 +150,15 @@ class BotHandler:
         except Exception as e:
             logger.error(f"Erreur dans auto_broadcast_signal: {e}")
             await asyncio.sleep(5)  # Attendre en cas d'erreur
+
+
+
+
+
+
+
+
+    
 
 
     async def broadcast_to_users(self, context: ContextTypes.DEFAULT_TYPE, update: Update):
