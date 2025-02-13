@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import threading
+import random
 from datetime import datetime
 from flask import Flask
 import aiosqlite
@@ -37,7 +38,7 @@ def home():
 TOKEN = "7859942806:AAHy4pNgFunsgO4lA2wK8TLa89tSzZjvY58"
 ADMIN_ID = 7392567951
 
-# Ressources médias
+# Ressources médias (inchangées)
 MEDIA_RESOURCES = {
     "intro_video": "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
     "main_image": "https://i.ytimg.com/vi/KolFup7TxOM/hq720.jpg",
@@ -57,6 +58,13 @@ MEDIA_RESOURCES = {
         "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png"
     ]
 }
+
+def generate_random_coefficient():
+    """Génère un coefficient aléatoire avec une forte probabilité entre 10 et 600"""
+    if random.random() < 0.9:  # 90% de chance d'être entre 10 et 600
+        return round(random.uniform(10, 600), 2)
+    else:  # 10% de chance d'être entre 600 et 1702.03
+        return round(random.uniform(600, 1702.03), 2)
 
 class DatabaseManager:
     def __init__(self, db_path="users.db"):
@@ -100,6 +108,38 @@ class KeyboardManager:
 class BotHandler:
     def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
+        self.last_broadcast_time = datetime.now()
+
+    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+        """Envoie automatiquement un signal de trading toutes les 7 secondes (+/- 2 secondes)"""
+        while True:
+            try:
+                # Attendre 7 secondes + marge aléatoire de 2 secondes
+                wait_time = 7 + random.uniform(-1, 1)
+                await asyncio.sleep(wait_time)
+                
+                coefficient = generate_random_coefficient()
+                mise = 3000
+                gain = round(coefficient * mise, 2)
+                
+                message = (
+                    f"Le coefficient pour le jeu suivant est de {coefficient}x ✓\n"
+                    f"Imaginez que vous ayez misé {mise}€ et qu'en 1 tour vous obteniez {gain}€\n"
+                    "Un seul jeu en 20 minutes.\n"
+                    'Envoyez-moi le mot "BOT" par SMS @moustaphalux'
+                )
+                
+                user_ids = await self.db_manager.get_all_users()
+                for user_id in user_ids:
+                    try:
+                        await context.bot.send_message(chat_id=user_id, text=message)
+                        await asyncio.sleep(0.1)  # Petit délai entre chaque envoi
+                    except Exception as e:
+                        logger.error(f"Erreur d'envoi à {user_id}: {e}")
+                        
+            except Exception as e:
+                logger.error(f"Erreur dans auto_broadcast_signal: {e}")
+                await asyncio.sleep(5)  # Attendre en cas d'erreur
 
     async def broadcast_to_users(self, context: ContextTypes.DEFAULT_TYPE, update: Update):
         """Diffuse le message à tous les utilisateurs."""
@@ -111,27 +151,23 @@ class BotHandler:
             nonlocal count
             async with sem:
                 try:
-                    # Si c'est un message texte
                     if update.message.text:
                         await context.bot.send_message(
                             chat_id=user_id,
                             text=update.message.text
                         )
-                    # Si c'est une photo
                     elif update.message.photo:
                         await context.bot.send_photo(
                             chat_id=user_id,
                             photo=update.message.photo[-1].file_id,
                             caption=update.message.caption
                         )
-                    # Si c'est une vidéo
                     elif update.message.video:
                         await context.bot.send_video(
                             chat_id=user_id,
                             video=update.message.video.file_id,
                             caption=update.message.caption
                         )
-                    # Si c'est un document
                     elif update.message.document:
                         await context.bot.send_document(
                             chat_id=user_id,
@@ -146,17 +182,14 @@ class BotHandler:
         tasks = [send_to_user(user_id) for user_id in user_ids]
         await asyncio.gather(*tasks)
         
-        # Confirmer à l'admin le nombre d'envois réussis
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text=f"✅ Message envoyé à {count} utilisateurs."
         )
 
     async def handle_admin_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Gère les messages de l'administrateur."""
         if update.effective_user.id != ADMIN_ID:
             return
-        
         await self.broadcast_to_users(context, update)
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -273,18 +306,21 @@ async def main():
         # Handler pour les boutons
         application.add_handler(CallbackQueryHandler(bot_handler.handle_button))
         
-        # Handler pour tous les messages de l'admin (diffusion automatique)
+        # Handler pour tous les messages de l'admin
         application.add_handler(MessageHandler(
             filters.ALL & filters.Chat(ADMIN_ID),
             bot_handler.handle_admin_message
         ))
+        
+        # Démarrer la diffusion automatique
+        asyncio.create_task(bot_handler.auto_broadcast_signal(application))
         
         keep_alive()
         logger.info("Bot démarré!")
         await application.run_polling()
         
     except Exception as e:
-        logger.critical(f"Erreur fatale: {e}")
+        logger.critical(f"logger.critical(f"Erreur fatale: {e}")
         raise
 
 if __name__ == "__main__":
