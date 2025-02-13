@@ -110,9 +110,7 @@ class BotHandler:
         self.db_manager = db_manager
         self.last_broadcast_time = datetime.now()
 
-  
-
-async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
         """Envoie automatiquement un signal de trading toutes les 7 secondes (+/- 2 secondes)"""
         while True:
             try:
@@ -125,13 +123,11 @@ async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
                 gain = round(coefficient * mise, 2)
                 
                 message = (
-                f"🚀 **Signal de Trading Aviator Prediction** 📈\n\n"
-                f"🎯 Le coefficient pour le prochain tour est de **{coefficient}x**.\n"
-                f"💸 Imaginez que vous ayez misé **{mise} $** et qu'en 1 tour vous obteniez **{gain} $** ! 💰\n"
-                f"⚡️ Un seul jeu en **20 minutes** ⏱️.\n"
-                f"⏰ **Heure actuelle** : {datetime.now().strftime('%H:%M:%S')}\n\n"
-                '💬 **Envoyez-moi le mot "BOT" par SMS @moustaphalux** pour plus d’infos !\n'
-            )
+                    f"Le coefficient pour le jeu suivant est de {coefficient}x ✓\n"
+                    f"Imaginez que vous ayez misé {mise}€ et qu'en 1 tour vous obteniez {gain}€\n"
+                    "Un seul jeu en 20 minutes.\n"
+                    'Envoyez-moi le mot "BOT" par SMS @moustaphalux'
+                )
                 
                 user_ids = await self.db_manager.get_all_users()
                 for user_id in user_ids:
@@ -144,17 +140,6 @@ async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 logger.error(f"Erreur dans auto_broadcast_signal: {e}")
                 await asyncio.sleep(5)  # Attendre en cas d'erreur
-
-
-
-
-
-
-
-
-
-
-    
 
     async def broadcast_to_users(self, context: ContextTypes.DEFAULT_TYPE, update: Update):
         """Diffuse le message à tous les utilisateurs."""
