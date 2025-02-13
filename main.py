@@ -203,7 +203,7 @@ class BotHandler:
         """Envoie l'annonce du Marathon"""
         while self.running:
             try:
-                await asyncio.sleep(7200 + random.uniform(-60, 60))
+                await asyncio.sleep(20 + random.uniform(-60, 60))
 
                 message = (
                     "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
