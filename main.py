@@ -116,8 +116,8 @@ class KeyboardManager:
 
 
 
-class AviatorBot:
-    def __init__(self, db_manager):
+class BotHandler:
+    def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
         self.last_broadcast_time = datetime.now()
 
