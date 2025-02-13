@@ -13,7 +13,6 @@ from telegram import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     InputMediaPhoto,
-    InputMediaVideo,
 )
 from telegram.ext import (
     Application,
@@ -41,8 +40,8 @@ def home():
     return f"Bot actif et opérationnel depuis {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
 # --- Paramètres du bot ---
-TOKEN = "7859942806:AAHy4pNgFunsgO4lA2wK8TLa89tSzZjvY58"
-ADMIN_ID = 7392567951  # Remplacez par votre identifiant Telegram
+TOKEN = "votre_token_ici"
+ADMIN_ID = 123456789  # Remplacez par votre identifiant Telegram
 
 # --- Médias ---
 INTRO_VIDEO = "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia"
@@ -84,7 +83,11 @@ DB_PATH = "users.db"
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""CREATE TABLE IF NOT EXISTS users (chat_id INTEGER PRIMARY KEY)""")
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                chat_id INTEGER PRIMARY KEY
+            )
+        """)
         await db.commit()
 
 async def add_user(chat_id: int):
@@ -103,13 +106,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     await add_user(chat_id)
     try:
-        # Envoi d'une vidéo
         await context.bot.send_video(
             chat_id=chat_id,
             video=INTRO_VIDEO,
             caption="🎮 Découvrez notre méthode révolutionnaire ! 🎰"
         )
-
         message = f"""🎯 BILL GATES, BONJOUR ❗️
 
 Je suis un programmeur vénézuélien et je connais la combine pour retirer l'argent du jeu des casinos.
@@ -119,15 +120,12 @@ Je suis un programmeur vénézuélien et je connais la combine pour retirer l'ar
 💫 Vous pouvez gagner de l'argent sans rien faire, car j'ai déjà fait tout le programme pour vous.
 
 🔥 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y')}"""
-
-        # Envoi d'une image avec texte
+        reply_markup = create_keyboard()
         await update.message.reply_photo(
             photo=MAIN_IMAGE,
             caption=message,
-            reply_markup=create_keyboard()
+            reply_markup=reply_markup
         )
-
-        # Envoi d'une autre image
         await context.bot.send_photo(
             chat_id=chat_id,
             photo=BOTTOM_IMAGE,
@@ -144,7 +142,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     try:
         if query.data == "casino_withdrawal":
-            # Envoi de texte avec plusieurs images (média group)
             await context.bot.send_message(
                 chat_id=chat_id,
                 text="""🎰 PREUVES DE PAIEMENT RÉCENTES 🎰
@@ -167,7 +164,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=create_program_button()
             )
         elif query.data == "info_bots":
-            # Envoi de texte avec plusieurs images (média group)
             await context.bot.send_message(
                 chat_id=chat_id,
                 text="""🤖 NOTRE TECHNOLOGIE UNIQUE 🤖
@@ -197,31 +193,93 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="Une erreur est survenue. Veuillez réessayer."
         )
 
-# --- Fonction pour garder le bot actif via Flask ---
-def keep_alive():
-    def run():
-        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    thread = threading.Thread(target=run)
-    thread.start()
+# --- Interface de gestion pour l'admin (conversation pour composer un broadcast) ---
+BROADCAST_MESSAGE, CONFIRM_BROADCAST = range(2)
 
-# --- Fonction principale ---
+async def compose(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Commande /compose pour initier l'envoi d'un message via le bot (réservée à l'admin)."""
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("Vous n'avez pas la permission d'utiliser cette commande.")
+        return ConversationHandler.END
+    await update.message.reply_text("Veuillez envoyer le message à diffuser à tous les utilisateurs.")
+    return BROADCAST_MESSAGE
+
+async def received_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Réception du message de broadcast saisi par l'admin."""
+    text = update.message.text
+    context.user_data["broadcast_message"] = text
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Oui", callback_data="confirm_yes"),
+            InlineKeyboardButton("Non", callback_data="confirm_no"),
+        ]
+    ])
+    await update.message.reply_text(
+        "Voulez-vous vraiment diffuser ce message à tous les utilisateurs ?", reply_markup=keyboard
+    )
+    return CONFIRM_BROADCAST
+
+async def confirm_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Confirme ou annule le broadcast en fonction du choix de l'admin."""
+    query = update.callback_query
+    await query.answer()
+    if query.data == "confirm_yes":
+        message = context.user_data.get("broadcast_message")
+        if message:
+            user_ids = await get_all_users()
+            count = 0
+            semaphore = asyncio.Semaphore(30)
+            async def send_to_user(user_id):
+                nonlocal count
+                async with semaphore:
+                    try:
+                        await context.bot.send_message(user_id, message)
+                        count += 1
+                    except Exception as e:
+                        logger.error(f"Erreur d'envoi au {user_id}: {e}")
+
+            await asyncio.gather(*[send_to_user(user_id) for user_id in user_ids])
+            await query.edit_message_text(f"Message envoyé à {count} utilisateurs.")
+        else:
+            await query.edit_message_text("Aucun message à diffuser.")
+    else:
+        await query.edit_message_text("Envoi annulé.")
+    return ConversationHandler.END
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Annule l'envoi du message."""
+    await update.message.reply_text("Envoi annulé.")
+    return ConversationHandler.END
+
+# --- Fonction principale pour démarrer le bot ---
 async def main():
-    try:
-        await init_db()  # Initialiser la base de données
-        application = Application.builder().token(TOKEN).build()
+    await init_db()  # Initialiser la base de données
+    application = Application.builder().token(TOKEN).build()
 
-        # Gestionnaires pour les commandes utilisateur
-        application.add_handler(CommandHandler("start", start_command))
-        application.add_handler(CallbackQueryHandler(handle_button))
+    # Configuration des gestionnaires de commande
+    application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CallbackQueryHandler(handle_button))
 
-        # Démarrer Flask pour garder le bot actif
-        keep_alive()
+    # ConversationHandler pour l'admin
+    compose_conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("compose", compose)],
+        states={
+            BROADCAST_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_message)],
+            CONFIRM_BROADCAST: [CallbackQueryHandler(confirm_broadcast)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    application.add_handler(compose_conv_handler)
 
-        logger.info("Bot démarré avec succès!")
-        await application.run_polling()
-    except Exception as e:
-        logger.critical(f"Erreur fatale: {e}")
-        raise
+    # Démarrer Flask
+    keep_alive()
+
+    # Configuration du webhook (à ajouter si nécessaire)
+    webhook_url = 'https://<your-server-url>/'
+    await application.bot.set_webhook(webhook_url)
+
+    # Lancer le bot en mode polling
+    await application.run_polling()
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(main())
+    asyncio.run(main())
