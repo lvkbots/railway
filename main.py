@@ -133,7 +133,7 @@ class BotHandler:
         """Envoie automatiquement un signal de trading toutes les 10 secondes (+/- 1 seconde)"""
         while True:
             try:
-                # Attendre 10 secondes avec une marge aléatoire de +/- 1 seconde
+                # Attendre 10 secondes avec une marge aléatoire de +/- 1 seconde pour chaque signal
                 wait_time = 10 + random.uniform(-1, 1)
                 await asyncio.sleep(wait_time)
                 
@@ -167,11 +167,6 @@ class BotHandler:
                     except Exception as e:
                         logger.error(f"Erreur d'envoi à {user_id}: {e}")
                 
-                # Attendre encore 15 secondes avant d'envoyer le deuxième message
-                await asyncio.sleep(15)
-
-                await self.auto_broadcast_marathon(context)  # Appel de la méthode du marathon
-                
             except Exception as e:
                 logger.error(f"Erreur dans auto_broadcast_signal: {e}")
                 await asyncio.sleep(5)  # Attendre en cas d'erreur
@@ -179,6 +174,10 @@ class BotHandler:
     async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
         """Envoie automatiquement l'annonce du Marathon Gagnant-Gagnant toutes les 2 heures (+/- 60 secondes)"""
         try:
+            # Attente avec une marge aléatoire de +/- 60 secondes
+            wait_time = 2 * 60 * 60 + random.uniform(-60, 60)
+            await asyncio.sleep(wait_time)
+
             message = (
                 "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
                 "🔥 **Objectif** : Faire gagner **50 000 FCFA** à chaque participant **AUJOURD’HUI** !\n\n"
@@ -209,6 +208,48 @@ class BotHandler:
         except Exception as e:
             logger.error(f"Erreur dans auto_broadcast_marathon: {e}")
             await asyncio.sleep(60)  # Attendre 1 minute avant de réessayer en cas d'erreur
+
+    async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
+        """Envoie un message promotionnel à propos de Bill Gates toutes les 30 secondes"""
+        try:
+            # Attente de 30 secondes pour chaque envoi
+            wait_time = 30 + random.uniform(-1, 1)
+            await asyncio.sleep(wait_time)
+
+            # Récupérer le prénom de l'utilisateur
+            user = await context.bot.get_chat_member(chat_id=context.bot.id, user_id=user_id)
+            first_name = user['user'].get('first_name', 'Ami')  # Utilise 'Ami' par défaut si pas de prénom
+
+            message = (
+                f"Salut {first_name}!\n\n"  # Inclure le prénom de l'utilisateur ici
+                "Vous avez besoin d'argent? Alors écris-moi @moustaphaluxe je t'expliquerai comment fonctionne mon programme.\n\n"
+                "Dépêchez-vous !!! Parce qu'il y a tellement de gens qui le veulent !\n\n"
+                "@moustaphalux\n\n"
+                "@moustaphalux\n\n"
+                "@moustaphalux"
+            )
+
+            image_url = "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
+            user_ids = await self.db_manager.get_all_users()
+
+            for user_id in user_ids:
+                try:
+                    await context.bot.send_message(
+                        chat_id=user_id,
+                        text=message,
+                        parse_mode="Markdown"
+                    )
+                    await context.bot.send_photo(
+                        chat_id=user_id,
+                        photo=image_url
+                    )
+                    await asyncio.sleep(0.1)  # Petite pause entre chaque envoi
+                except Exception as e:
+                    logger.error(f"Erreur d'envoi à {user_id}: {e}")
+
+        except Exception as e:
+            logger.error(f"Erreur dans auto_broadcast_bill_gates: {e}")
+            await asyncio.sleep(30)  # Attendre avant de réessayer en cas d'erreur
 
 
 
