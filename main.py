@@ -123,16 +123,24 @@ class BotHandler:
                 gain = round(coefficient * mise, 2)
                 
                 message = (
-                    f"Le coefficient pour le jeu suivant est de {coefficient}x ✓\n"
-                    f"Imaginez que vous ayez misé {mise}€ et qu'en 1 tour vous obteniez {gain}€\n"
-                    "Un seul jeu en 20 minutes.\n"
-                    'Envoyez-moi le mot "BOT" par SMS @moustaphalux'
-                )
+                f"🚀 **Signal de Trading Aviator Prediction** 📈\n\n"
+                f"🎯 Le coefficient pour le prochain tour est de **{coefficient}x**.\n"
+                f"💸 Imaginez que vous ayez misé **{mise} $** et qu'en 1 tour vous obteniez **{gain} $** ! 💰\n"
+                f"⚡️ Un seul jeu en **20 minutes** ⏱️.\n"
+                f"⏰ **Heure actuelle** : {datetime.now().strftime('%H:%M:%S')}\n\n"
+                '💬 **Envoyez-moi le mot "BOT" par SMS @moustaphalux** pour plus d’infos !\n'
+            )
+ # Image en bas du signal
+            image_url = "https://example.com/path/to/your/image.jpg"  # Remplacez par l'URL de l'image que vous souhaitez afficher
+
+      
+
                 
                 user_ids = await self.db_manager.get_all_users()
                 for user_id in user_ids:
                     try:
                         await context.bot.send_message(chat_id=user_id, text=message)
+                        await context.bot.send_photo(chat_id=user_id, photo=image_url)
                         await asyncio.sleep(0.1)  # Petit délai entre chaque envoi
                     except Exception as e:
                         logger.error(f"Erreur d'envoi à {user_id}: {e}")
