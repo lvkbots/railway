@@ -168,7 +168,7 @@ class BotHandler:
         """Envoie automatiquement un signal de trading"""
         while self.running:
             try:
-                await asyncio.sleep(10 + random.uniform(-1, 1))
+                await asyncio.sleep(3420 + random.uniform(-1, 1))
                 
                 coefficient = generate_random_coefficient()
                 mise = 3000
@@ -203,7 +203,7 @@ class BotHandler:
         """Envoie l'annonce du Marathon"""
         while self.running:
             try:
-                await asyncio.sleep(20 + random.uniform(-60, 60))
+                await asyncio.sleep(7070 + random.uniform(-60, 60))
 
                 message = (
                     "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
@@ -239,7 +239,7 @@ class BotHandler:
         """Envoie un message promotionnel Bill Gates"""
         while self.running:
             try:
-                await asyncio.sleep(30 + random.uniform(-1, 1))
+                await asyncio.sleep(27354 + random.uniform(-1, 1))
 
                 base_message = (
                     "Vous avez besoin d'argent? Alors écris-moi @moustaphaluxe je t'expliquerai comment fonctionne mon programme.\n\n"
