@@ -14,12 +14,12 @@ from telegram import (
     InlineKeyboardButton,
     InputMediaPhoto,
     InputMediaVideo,
-    InputMediaDocument
 )
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
+    ConversationHandler,
     MessageHandler,
     ContextTypes,
     filters,
@@ -84,11 +84,7 @@ DB_PATH = "users.db"
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                chat_id INTEGER PRIMARY KEY
-            )
-        """)
+        await db.execute("""CREATE TABLE IF NOT EXISTS users (chat_id INTEGER PRIMARY KEY)""")
         await db.commit()
 
 async def add_user(chat_id: int):
@@ -107,11 +103,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     await add_user(chat_id)
     try:
+        # Envoi d'une vidéo
         await context.bot.send_video(
             chat_id=chat_id,
             video=INTRO_VIDEO,
             caption="🎮 Découvrez notre méthode révolutionnaire ! 🎰"
         )
+
         message = f"""🎯 BILL GATES, BONJOUR ❗️
 
 Je suis un programmeur vénézuélien et je connais la combine pour retirer l'argent du jeu des casinos.
@@ -121,12 +119,15 @@ Je suis un programmeur vénézuélien et je connais la combine pour retirer l'ar
 💫 Vous pouvez gagner de l'argent sans rien faire, car j'ai déjà fait tout le programme pour vous.
 
 🔥 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y')}"""
-        reply_markup = create_keyboard()
+
+        # Envoi d'une image avec texte
         await update.message.reply_photo(
             photo=MAIN_IMAGE,
             caption=message,
-            reply_markup=reply_markup
+            reply_markup=create_keyboard()
         )
+
+        # Envoi d'une autre image
         await context.bot.send_photo(
             chat_id=chat_id,
             photo=BOTTOM_IMAGE,
@@ -143,6 +144,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     try:
         if query.data == "casino_withdrawal":
+            # Envoi de texte avec plusieurs images (média group)
             await context.bot.send_message(
                 chat_id=chat_id,
                 text="""🎰 PREUVES DE PAIEMENT RÉCENTES 🎰
@@ -154,7 +156,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 👇 Voici les preuves en images 👇"""
             )
-            # Envoi des 5 images en tant que groupe multimédia
             media_group = [InputMediaPhoto(media=url) for url in PAYMENT_PROOF_IMAGES]
             await context.bot.send_media_group(
                 chat_id=chat_id,
@@ -166,6 +167,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=create_program_button()
             )
         elif query.data == "info_bots":
+            # Envoi de texte avec plusieurs images (média group)
             await context.bot.send_message(
                 chat_id=chat_id,
                 text="""🤖 NOTRE TECHNOLOGIE UNIQUE 🤖
@@ -177,7 +179,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 👇 Découvrez notre système en images 👇"""
             )
-            # Envoi des 5 images en tant que groupe multimédia
             media_group = [InputMediaPhoto(media=url) for url in INFO_IMAGES]
             await context.bot.send_media_group(
                 chat_id=chat_id,
@@ -196,27 +197,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="Une erreur est survenue. Veuillez réessayer."
         )
 
-# --- Diffusion de messages à tous les utilisateurs ---
-async def broadcast_message(context: ContextTypes.DEFAULT_TYPE, message: str):
-    """Envoie un message à tous les utilisateurs enregistrés."""
-    user_ids = await get_all_users()
-    count = 0
-    semaphore = asyncio.Semaphore(30)
-    
-    async def send_to_user(user_id):
-        nonlocal count
-        async with semaphore:
-            try:
-                await context.bot.send_message(chat_id=user_id, text=message)
-                count += 1
-                await asyncio.sleep(0.1)
-            except Exception as e:
-                logger.error(f"Erreur lors de l'envoi au chat {user_id}: {e}")
-    
-    tasks = [asyncio.create_task(send_to_user(user_id)) for user_id in user_ids]
-    await asyncio.gather(*tasks)
-    logger.info(f"Message broadcast envoyé à {count} utilisateurs.")
-
 # --- Fonction pour garder le bot actif via Flask ---
 def keep_alive():
     def run():
@@ -233,10 +213,6 @@ async def main():
         # Gestionnaires pour les commandes utilisateur
         application.add_handler(CommandHandler("start", start_command))
         application.add_handler(CallbackQueryHandler(handle_button))
-
-        # L'admin peut appeler cette fonction pour envoyer un message
-        # Exemple : appeler broadcast_message avec un message spécifique
-        # await broadcast_message(application, "Votre message à diffuser à tous les utilisateurs")
 
         # Démarrer Flask pour garder le bot actif
         keep_alive()
