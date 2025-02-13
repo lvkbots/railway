@@ -2,7 +2,7 @@ import asyncio
 from telegram import Bot
 
 # Remplacez par votre propre token et ID utilisateur
-BOT_TOKEN = "8125835983:AAH3ytx14PPMqYB0hzXd-fPtb7SJGf5rRixa"
+BOT_TOKEN = "7184666905:AAFd2arfmIFZ86cp9NNVp57dKkH6hAVi4iM"
 USER_ID = 7951781368
 
 async def send_message(message: str):
