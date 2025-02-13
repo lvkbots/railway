@@ -163,14 +163,18 @@ class BotHandler:
                 logger.error(f"Erreur dans auto_broadcast_signal: {e}")
                 await asyncio.sleep(5)  # Attendre en cas d'erreur
 
-    async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
-        """Envoie automatiquement l'annonce du Marathon Gagnant-Gagnant toutes les 2 heures (+/- 60 secondes)"""
+    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+        """Envoie automatiquement un signal de trading toutes les 10 secondes (+/- 1 seconde)"""
         while True:
             try:
-                # Attendre 2 heures (7200 secondes) avec une marge aléatoire de +/- 60 secondes
-                wait_time = 11 + random.uniform(-1, 1)
+                # Attendre 10 secondes avec une marge aléatoire de +/- 1 seconde
+                wait_time = 15 + random.uniform(-1, 1)
                 await asyncio.sleep(wait_time)
-
+                
+                coefficient = generate_random_coefficient()
+                mise = 3000
+                gain = round(coefficient * mise, 2)
+                
                 message = (
                     "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
                     "🔥 **Objectif** : Faire gagner **50 000 FCFA** à chaque participant **AUJOURD’HUI** !\n\n"
@@ -179,16 +183,15 @@ class BotHandler:
                     "💬 **Envoyez-moi 'MARATHON'** pour participer !\n\n"
                     "@moustaphalux @moustaphalux @moustaphalux"
                 )
-
+                
                 image_url = "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
                 user_ids = await self.db_manager.get_all_users()
-
                 for user_id in user_ids:
                     try:
                         await context.bot.send_message(
                             chat_id=user_id,
                             text=message,
-                            parse_mode="Markdown"
+                            parse_mode='Markdown'
                         )
                         await context.bot.send_photo(
                             chat_id=user_id,
@@ -197,10 +200,10 @@ class BotHandler:
                         await asyncio.sleep(0.1)  # Petite pause entre chaque envoi
                     except Exception as e:
                         logger.error(f"Erreur d'envoi à {user_id}: {e}")
-
+                        
             except Exception as e:
-                logger.error(f"Erreur dans auto_broadcast_marathon: {e}")
-                await asyncio.sleep(5)  # Attendre 1 minute avant de réessayer en cas d'erreur
+                logger.error(f"Erreur dans auto_broadcast_signal: {e}")
+                await asyncio.sleep(5)  # Attendre en cas d'erreur
 
 
 
