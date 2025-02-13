@@ -1,5 +1,8 @@
+import nest_asyncio
+nest_asyncio.apply()  # Patch l'event loop pour autoriser les appels imbriqués
+
 import asyncio
-from telegram import Bot, Update
+from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 # Token Telegram
@@ -20,12 +23,14 @@ async def handle_message(update: Update, context):
 async def main():
     """Initialise et lance le bot."""
     app = Application.builder().token(BOT_TOKEN).build()
-    
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
+
     print("Le bot est en cours d'exécution...")
     await app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Utilise l'event loop existant (patché par nest_asyncio) pour exécuter le bot
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
