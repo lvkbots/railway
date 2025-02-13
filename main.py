@@ -124,14 +124,20 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if query.data == "casino_withdrawal":
             await context.bot.send_message(chat_id=chat_id, text="🎰 Preuves de paiement récentes")
+            
+            # Envoi des 5 images dans un seul groupe
             media_group = [InputMediaPhoto(media=url) for url in PAYMENT_PROOF_IMAGES]
             await context.bot.send_media_group(chat_id=chat_id, media=media_group)
+            
             await context.bot.send_message(chat_id=chat_id, text="🌟 Prêt à commencer ?", reply_markup=create_program_button())
 
         elif query.data == "info_bots":
             await context.bot.send_message(chat_id=chat_id, text="🤖 Notre technologie unique")
+            
+            # Envoi des 5 images d'informations dans un seul groupe
             media_group = [InputMediaPhoto(media=url) for url in INFO_IMAGES]
             await context.bot.send_media_group(chat_id=chat_id, media=media_group)
+            
             await context.bot.send_message(chat_id=chat_id, text="🚀 Prêt à révolutionner vos gains ?", reply_markup=create_program_button())
 
     except Exception as e:
