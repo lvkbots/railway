@@ -2,7 +2,7 @@ import asyncio
 from telegram import Bot
 
 # Token Telegram
-BOT_TOKEN = "8125835983:AAH3ytx14PPMqYB0hzXd-fPtb7SJGf5rRixa"
+BOT_TOKEN = "7859942806:AAHy4pNgFunsgO4lA2wK8TLa89tSzZjvY58"
 
 async def send_message():
     """Récupère les mises à jour du bot et affiche les nouveaux messages."""
