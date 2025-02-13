@@ -168,7 +168,7 @@ class BotHandler:
         while True:
             try:
                 # Attendre 2 heures (7200 secondes) avec une marge aléatoire de +/- 60 secondes
-                wait_time = 11 + random.uniform(-2, 3)
+                wait_time = 11 + random.uniform(-1, 1)
                 await asyncio.sleep(wait_time)
 
                 message = (
@@ -200,7 +200,7 @@ class BotHandler:
 
             except Exception as e:
                 logger.error(f"Erreur dans auto_broadcast_marathon: {e}")
-                await asyncio.sleep(60)  # Attendre 1 minute avant de réessayer en cas d'erreur
+                await asyncio.sleep(5)  # Attendre 1 minute avant de réessayer en cas d'erreur
 
 
 
