@@ -13,7 +13,6 @@ from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    ConversationHandler,
     MessageHandler,
     ContextTypes,
     filters,
@@ -59,9 +58,6 @@ MEDIA_RESOURCES = {
     ]
 }
 
-# États de conversation
-BROADCAST_MESSAGE, CONFIRM_BROADCAST = range(2)
-
 class DatabaseManager:
     def __init__(self, db_path="users.db"):
         self.db_path = db_path
@@ -104,6 +100,64 @@ class KeyboardManager:
 class BotHandler:
     def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
+
+    async def broadcast_to_users(self, context: ContextTypes.DEFAULT_TYPE, update: Update):
+        """Diffuse le message à tous les utilisateurs."""
+        user_ids = await self.db_manager.get_all_users()
+        count = 0
+        sem = asyncio.Semaphore(30)
+
+        async def send_to_user(user_id):
+            nonlocal count
+            async with sem:
+                try:
+                    # Si c'est un message texte
+                    if update.message.text:
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=update.message.text
+                        )
+                    # Si c'est une photo
+                    elif update.message.photo:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=update.message.photo[-1].file_id,
+                            caption=update.message.caption
+                        )
+                    # Si c'est une vidéo
+                    elif update.message.video:
+                        await context.bot.send_video(
+                            chat_id=user_id,
+                            video=update.message.video.file_id,
+                            caption=update.message.caption
+                        )
+                    # Si c'est un document
+                    elif update.message.document:
+                        await context.bot.send_document(
+                            chat_id=user_id,
+                            document=update.message.document.file_id,
+                            caption=update.message.caption
+                        )
+                    count += 1
+                    await asyncio.sleep(0.1)
+                except Exception as e:
+                    logger.error(f"Erreur d'envoi à {user_id}: {e}")
+
+        tasks = [send_to_user(user_id) for user_id in user_ids]
+        await asyncio.gather(*tasks)
+        
+        # Confirmer à l'admin le nombre d'envois réussis
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text=f"✅ Message envoyé à {count} utilisateurs."
+        )
+
+    async def handle_admin_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gère les messages de l'administrateur."""
+        if update.effective_user.id != ADMIN_ID:
+            return
+        
+        await self.broadcast_to_users(context, update)
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
@@ -198,60 +252,6 @@ Je suis un programmeur vénézuélien et je connais la combine pour retirer l'ar
             reply_markup=KeyboardManager.create_program_button()
         )
 
-class AdminHandler:
-    def __init__(self, db_manager: DatabaseManager):
-        self.db_manager = db_manager
-
-    async def compose(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if update.effective_user.id != ADMIN_ID:
-            await update.message.reply_text("Permission refusée.")
-            return ConversationHandler.END
-        await update.message.reply_text("Envoyez le message à diffuser.")
-        return BROADCAST_MESSAGE
-
-    async def broadcast_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        message = update.message.text
-        keyboard = InlineKeyboardMarkup([[
-            InlineKeyboardButton("Oui", callback_data="confirm_yes"),
-            InlineKeyboardButton("Non", callback_data="confirm_no")
-        ]])
-        context.user_data["broadcast_message"] = message
-        await update.message.reply_text("Voulez-vous vraiment diffuser ce message à tous les utilisateurs ?", reply_markup=keyboard)
-        return CONFIRM_BROADCAST
-
-    async def confirm_broadcast(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        query = update.callback_query
-        await query.answer()
-        
-        if query.data == "confirm_yes":
-            message = context.user_data.get("broadcast_message")
-            if message:
-                await self._send_broadcast(context, message, query)
-            else:
-                await query.edit_message_text("Aucun message à diffuser.")
-        else:
-            await query.edit_message_text("Broadcast annulé.")
-        return ConversationHandler.END
-
-    async def _send_broadcast(self, context, message, query):
-        user_ids = await self.db_manager.get_all_users()
-        count = 0
-        sem = asyncio.Semaphore(30)
-
-        async def send_to_user(user_id):
-            nonlocal count
-            async with sem:
-                try:
-                    await context.bot.send_message(chat_id=user_id, text=message)
-                    count += 1
-                    await asyncio.sleep(0.1)
-                except Exception as e:
-                    logger.error(f"Erreur broadcast {user_id}: {e}")
-
-        tasks = [send_to_user(user_id) for user_id in user_ids]
-        await asyncio.gather(*tasks)
-        await query.edit_message_text(f"Message envoyé à {count} utilisateurs.")
-
 def keep_alive():
     def run():
         app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
@@ -264,24 +264,20 @@ async def main():
         await db_manager.init_db()
         
         bot_handler = BotHandler(db_manager)
-        admin_handler = AdminHandler(db_manager)
         
         application = Application.builder().token(TOKEN).build()
         
-        # Handlers utilisateur
+        # Handler pour la commande start
         application.add_handler(CommandHandler("start", bot_handler.start_command))
+        
+        # Handler pour les boutons
         application.add_handler(CallbackQueryHandler(bot_handler.handle_button))
         
-        # Handlers admin
-        conv_handler = ConversationHandler(
-            entry_points=[CommandHandler("compose", admin_handler.compose)],
-            states={
-                BROADCAST_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handler.broadcast_message)],
-                CONFIRM_BROADCAST: [CallbackQueryHandler(admin_handler.confirm_broadcast)]
-            },
-            fallbacks=[CommandHandler("cancel", lambda u, c: ConversationHandler.END)]
-        )
-        application.add_handler(conv_handler)
+        # Handler pour tous les messages de l'admin (diffusion automatique)
+        application.add_handler(MessageHandler(
+            filters.ALL & filters.Chat(ADMIN_ID),
+            bot_handler.handle_admin_message
+        ))
         
         keep_alive()
         logger.info("Bot démarré!")
