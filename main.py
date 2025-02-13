@@ -138,7 +138,7 @@ class BotHandler:
                         # Envoyer l'image avec le message en légende
                         await context.bot.send_photo(
                             chat_id=user_id,
-                            photo=MEDIA_RESOURCES["signal_image"],
+                            photo=MEDIA_RESOURCES["https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png"],
                             caption=message,
                             parse_mode="Markdown"
                         )
