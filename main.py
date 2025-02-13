@@ -13,12 +13,13 @@ from telegram import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     InputMediaPhoto,
+    InputMediaVideo,
+    InputMediaDocument
 )
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    ConversationHandler,
     MessageHandler,
     ContextTypes,
     filters,
@@ -195,62 +196,26 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="Une erreur est survenue. Veuillez réessayer."
         )
 
-# --- Interface de gestion pour l'admin (conversation pour composer un broadcast) ---
-BROADCAST_MESSAGE, CONFIRM_BROADCAST = range(2)
-
-async def compose(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Commande /compose pour initier l'envoi d'un message via le bot (réservée à l'admin)."""
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("Vous n'avez pas la permission d'utiliser cette commande.")
-        return ConversationHandler.END
-    await update.message.reply_text("Veuillez envoyer le message à diffuser à tous les utilisateurs.")
-    return BROADCAST_MESSAGE
-
-async def received_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Réception du message de broadcast saisi par l'admin."""
-    text = update.message.text
-    context.user_data["broadcast_message"] = text
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("Oui", callback_data="confirm_yes"),
-        InlineKeyboardButton("Non", callback_data="confirm_no"),
-    ]])
-    await update.message.reply_text(
-        "Voulez-vous vraiment diffuser ce message à tous les utilisateurs ?", reply_markup=keyboard
-    )
-    return CONFIRM_BROADCAST
-
-async def confirm_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Confirme ou annule le broadcast en fonction du choix de l'admin."""
-    query = update.callback_query
-    await query.answer()
-    if query.data == "confirm_yes":
-        message = context.user_data.get("broadcast_message")
-        if message:
-            user_ids = await get_all_users()
-            count = 0
-            semaphore = asyncio.Semaphore(30)
-            async def send_to_user(user_id):
-                nonlocal count
-                async with semaphore:
-                    try:
-                        await context.bot.send_message(chat_id=user_id, text=message)
-                        count += 1
-                        await asyncio.sleep(0.1)
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi au chat {user_id}: {e}")
-            tasks = [asyncio.create_task(send_to_user(user_id)) for user_id in user_ids]
-            await asyncio.gather(*tasks)
-            await query.edit_message_text(text=f"Message broadcast envoyé à {count} utilisateurs.")
-        else:
-            await query.edit_message_text(text="Aucun message à diffuser.")
-    else:
-        await query.edit_message_text(text="Broadcast annulé.")
-    return ConversationHandler.END
-
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Annule la conversation."""
-    await update.message.reply_text("Opération annulée.")
-    return ConversationHandler.END
+# --- Diffusion de messages à tous les utilisateurs ---
+async def broadcast_message(context: ContextTypes.DEFAULT_TYPE, message: str):
+    """Envoie un message à tous les utilisateurs enregistrés."""
+    user_ids = await get_all_users()
+    count = 0
+    semaphore = asyncio.Semaphore(30)
+    
+    async def send_to_user(user_id):
+        nonlocal count
+        async with semaphore:
+            try:
+                await context.bot.send_message(chat_id=user_id, text=message)
+                count += 1
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                logger.error(f"Erreur lors de l'envoi au chat {user_id}: {e}")
+    
+    tasks = [asyncio.create_task(send_to_user(user_id)) for user_id in user_ids]
+    await asyncio.gather(*tasks)
+    logger.info(f"Message broadcast envoyé à {count} utilisateurs.")
 
 # --- Fonction pour garder le bot actif via Flask ---
 def keep_alive():
@@ -269,16 +234,9 @@ async def main():
         application.add_handler(CommandHandler("start", start_command))
         application.add_handler(CallbackQueryHandler(handle_button))
 
-        # Gestionnaire de conversation pour l'admin
-        compose_conv_handler = ConversationHandler(
-            entry_points=[CommandHandler("compose", compose)],
-            states={
-                BROADCAST_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_message)],
-                CONFIRM_BROADCAST: [CallbackQueryHandler(confirm_broadcast)],
-            },
-            fallbacks=[CommandHandler("cancel", cancel)],
-        )
-        application.add_handler(compose_conv_handler)
+        # L'admin peut appeler cette fonction pour envoyer un message
+        # Exemple : appeler broadcast_message avec un message spécifique
+        # await broadcast_message(application, "Votre message à diffuser à tous les utilisateurs")
 
         # Démarrer Flask pour garder le bot actif
         keep_alive()
