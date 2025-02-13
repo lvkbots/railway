@@ -112,20 +112,19 @@ class BotHandler:
 
   
 
-
 async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
-    """Envoie automatiquement un signal de trading toutes les 7 secondes (+/- 2 secondes)"""
-    while True:
-        try:
-            # Attendre 7 secondes + marge aléatoire de 2 secondes
-            wait_time = 7 + random.uniform(-1, 1)
-            await asyncio.sleep(wait_time)
-            
-            coefficient = generate_random_coefficient()
-            mise = 3000
-            gain = round(coefficient * mise, 2)
-            
-            message = (
+        """Envoie automatiquement un signal de trading toutes les 7 secondes (+/- 2 secondes)"""
+        while True:
+            try:
+                # Attendre 7 secondes + marge aléatoire de 2 secondes
+                wait_time = 7 + random.uniform(-1, 1)
+                await asyncio.sleep(wait_time)
+                
+                coefficient = generate_random_coefficient()
+                mise = 3000
+                gain = round(coefficient * mise, 2)
+                
+                message = (
                 f"🚀 **Signal de Trading Aviator Prediction** 📈\n\n"
                 f"🎯 Le coefficient pour le prochain tour est de **{coefficient}x**.\n"
                 f"💸 Imaginez que vous ayez misé **{mise} $** et qu'en 1 tour vous obteniez **{gain} $** ! 💰\n"
@@ -133,26 +132,18 @@ async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
                 f"⏰ **Heure actuelle** : {datetime.now().strftime('%H:%M:%S')}\n\n"
                 '💬 **Envoyez-moi le mot "BOT" par SMS @moustaphalux** pour plus d’infos !\n'
             )
-            
-            # Image en bas du signal
-            image_url = "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png"  # Remplacez par l'URL de l'image que vous souhaitez afficher
-
-            # Envoi du signal et de l'image
-            user_ids = await self.db_manager.get_all_users()
-            for user_id in user_ids:
-                try:
-                    # Envoi du message avec le signal
-                    await context.bot.send_message(chat_id=user_id, text=message)
-                    # Envoi de l'image
-                    await context.bot.send_photo(chat_id=user_id, photo=image_url)
-                    await asyncio.sleep(0.1)  # Petit délai entre chaque envoi
-                except Exception as e:
-                    logger.error(f"Erreur d'envoi à {user_id}: {e}")
-                    
-        except Exception as e:
-            logger.error(f"Erreur dans auto_broadcast_signal: {e}")
-            await asyncio.sleep(5)  # Attendre en cas d'erreur
-
+                
+                user_ids = await self.db_manager.get_all_users()
+                for user_id in user_ids:
+                    try:
+                        await context.bot.send_message(chat_id=user_id, text=message)
+                        await asyncio.sleep(0.1)  # Petit délai entre chaque envoi
+                    except Exception as e:
+                        logger.error(f"Erreur d'envoi à {user_id}: {e}")
+                        
+            except Exception as e:
+                logger.error(f"Erreur dans auto_broadcast_signal: {e}")
+                await asyncio.sleep(5)  # Attendre en cas d'erreur
 
 
 
