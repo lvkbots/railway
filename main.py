@@ -171,7 +171,58 @@ class BotHandler:
         
 
 
-     
+        async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
+        """Envoie automatiquement l'annonce du Marathon Gagnant-Gagnant toutes les 2 heures."""
+        while True:
+            try:
+                # Attendre 2 heures (7200 secondes)
+                await asyncio.sleep(7200)
+
+                # Message amélioré
+                marathon_message = (
+                    "🔥 **Dr Streing - MARATHON GAGNANT-GAGNANT** 🔥\n\n"
+                    "🚀 **NOUS LANÇONS UN MARATHON EXCEPTIONNEL !** 🚀\n\n"
+                    "🎯 **OBJECTIF : Faire gagner 50 000 FCFA à chaque participant AUJOURD'HUI !** 💰💸\n\n"
+                    "⏳ **DURÉE : 1 HEURE**\n"
+                    "📡 **Je vais vous guider personnellement jusqu'aux résultats !** 🎥✨\n\n"
+                    "📢 **Nous communiquerons en direct par liaison vidéo.**\n\n"
+                    "✅ **Si tu veux participer, envoie-moi le mot \"MARATHON\" dès maintenant !** 🔥\n\n"
+                    f"⏰ **Heure actuelle : {datetime.now().strftime('%H:%M:%S')}**\n\n"
+                    "📩 Contact : @moustaphalux\n"
+                    "📩 Contact : @moustaphalux\n"
+                    "📩 Contact : @moustaphalux\n"
+                )
+
+                # URL de l'image
+                marathon_image_url = "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
+
+                # Récupérer tous les utilisateurs enregistrés
+                user_ids = await self.db_manager.get_all_users()
+                
+                for user_id in user_ids:
+                    try:
+                        # Envoyer d'abord l'image
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=marathon_image_url,
+                            caption="🚀 **Marathon Gagnant-Gagnant - Dr Streing** 🚀"
+                        )
+                        await asyncio.sleep(0.5)  # Petit délai avant le message
+
+                        # Envoyer ensuite le message
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=marathon_message,
+                            parse_mode='Markdown'
+                        )
+                        await asyncio.sleep(0.1)  # Petit délai entre chaque envoi
+                    except Exception as e:
+                        logger.error(f"Erreur d'envoi à {user_id}: {e}")
+
+            except Exception as e:
+                logger.error(f"Erreur dans auto_broadcast_marathon: {e}")
+                await asyncio.sleep(5)  # Pause en cas d'erreur
+
 
 
 
