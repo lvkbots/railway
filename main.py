@@ -175,7 +175,7 @@ class BotHandler:
         """Envoie automatiquement l'annonce du Marathon Gagnant-Gagnant toutes les 2 heures (+/- 60 secondes)"""
         try:
             # Attente avec une marge aléatoire de +/- 60 secondes
-            wait_time = 2 * 60 * 60 + random.uniform(-60, 60)
+            wait_time = 20 + random.uniform(-10, 10)
             await asyncio.sleep(wait_time)
 
             message = (
