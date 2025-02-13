@@ -138,23 +138,31 @@ class BotHandler:
         asyncio.create_task(self.auto_broadcast_marathon(context))
         asyncio.create_task(self.auto_broadcast_bill_gates(context))
 
-    async def send_message_with_photo(self, context, user_id, text, photo_url):
-        """Helper pour envoyer un message avec photo de manière fiable"""
-        try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=text,
-                parse_mode='Markdown'
-            )
-            if photo_url:
-                await context.bot.send_photo(
+    async def send_message_with_photo(self, context, user_id, text, photo_url, max_retries=3):
+        """Helper pour envoyer un message avec photo avec tentatives multiples"""
+        for attempt in range(max_retries):
+            try:
+                # Envoi du message texte
+                await context.bot.send_message(
                     chat_id=user_id,
-                    photo=photo_url
+                    text=text,
+                    parse_mode='Markdown'
                 )
-            return True
-        except Exception as e:
-            logger.error(f"Erreur d'envoi à {user_id}: {str(e)}")
-            return False
+                await asyncio.sleep(1)  # Pause entre le texte et la photo
+                
+                # Envoi de la photo
+                if photo_url:
+                    await context.bot.send_photo(
+                        chat_id=user_id,
+                        photo=photo_url
+                    )
+                return True
+            except Exception as e:
+                logger.error(f"Tentative {attempt + 1}/{max_retries} échouée pour {user_id}: {str(e)}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2)  # Attente avant nouvelle tentative
+                continue
+        return False
 
     async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
         """Envoie automatiquement un signal de trading"""
@@ -185,7 +193,7 @@ class BotHandler:
                         message,
                         'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
                     )
-                    await asyncio.sleep(0.2)
+                    await asyncio.sleep(0.5)  # Délai augmenté entre les envois
 
             except Exception as e:
                 logger.error(f"Erreur dans auto_broadcast_signal: {str(e)}")
@@ -207,16 +215,21 @@ class BotHandler:
                 )
 
                 user_ids = await self.db_manager.get_all_users()
+                success_count = 0
                 for user_id in user_ids:
                     if not self.running:
                         break
-                    await self.send_message_with_photo(
+                    success = await self.send_message_with_photo(
                         context,
                         user_id,
                         message,
                         "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
                     )
-                    await asyncio.sleep(0.2)
+                    if success:
+                        success_count += 1
+                    await asyncio.sleep(0.5)
+
+                logger.info(f"Marathon message envoyé à {success_count}/{len(user_ids)} utilisateurs")
 
             except Exception as e:
                 logger.error(f"Erreur dans auto_broadcast_marathon: {str(e)}")
@@ -237,6 +250,7 @@ class BotHandler:
                 )
 
                 user_ids = await self.db_manager.get_all_users()
+                success_count = 0
                 for user_id in user_ids:
                     if not self.running:
                         break
@@ -245,17 +259,21 @@ class BotHandler:
                         first_name = chat.first_name if chat.first_name else "Ami"
                         message = f"Salut {first_name}!\n\n" + base_message
 
-                        await self.send_message_with_photo(
+                        success = await self.send_message_with_photo(
                             context,
                             user_id,
                             message,
                             "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
                         )
-                        await asyncio.sleep(0.2)
+                        if success:
+                            success_count += 1
+                        await asyncio.sleep(0.5)
 
                     except Exception as e:
                         logger.error(f"Erreur avec l'utilisateur {user_id}: {str(e)}")
                         continue
+
+                logger.info(f"Message Bill Gates envoyé à {success_count}/{len(user_ids)} utilisateurs")
 
             except Exception as e:
                 logger.error(f"Erreur dans auto_broadcast_bill_gates: {str(e)}")
