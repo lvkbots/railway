@@ -158,7 +158,7 @@ class BotHandler:
                         await context.bot.send_photo(
                             chat_id=user_id,
                             photo=image_url,
-                            "⏰ **Heure actuelle** : {datetime.now().strftime('%H:%M:%S')}\n\n",
+                            
                         )
                         await asyncio.sleep(0.1)  # Petit délai entre chaque envoi
                     except Exception as e:
