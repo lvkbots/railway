@@ -163,7 +163,7 @@ class BotHandler:
                 logger.error(f"Erreur dans auto_broadcast_signal: {e}")
                 await asyncio.sleep(5)  # Attendre en cas d'erreur
 
-    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+    async def auto_broadcast_signal2(self, context: ContextTypes.DEFAULT_TYPE):
         """Envoie automatiquement un signal de trading toutes les 10 secondes (+/- 1 seconde)"""
         while True:
             try:
