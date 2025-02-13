@@ -269,16 +269,7 @@ async def main():
         application.add_handler(CommandHandler("start", start_command))
         application.add_handler(CallbackQueryHandler(handle_button))
 
-        # Gestionnaire de conversation pour l'admin
-        compose_conv_handler = ConversationHandler(
-            entry_points=[CommandHandler("compose", compose)],
-            states={
-                BROADCAST_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_message)],
-                CONFIRM_BROADCAST: [CallbackQueryHandler(confirm_broadcast)],
-            },
-            fallbacks=[CommandHandler("cancel", cancel)],
-        )
-        application.add_handler(compose_conv_handler)
+       
 
         # Démarrer Flask pour garder le bot actif
         keep_alive()
@@ -288,6 +279,92 @@ async def main():
     except Exception as e:
         logger.critical(f"Erreur fatale: {e}")
         raise
+
+
+
+
+# --- Diffusion automatique améliorée avec options supplémentaires ---
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:  # Vérifie si l'utilisateur est l'administrateur
+        return
+
+    user_ids = await get_all_users()  # Récupère la liste de tous les utilisateurs
+    count = 0
+    semaphore = asyncio.Semaphore(30)  # Limite le nombre de messages envoyés simultanément à 30
+
+    # Fonction pour envoyer un message à un utilisateur
+    async def send_to_user(user_id, media=None, text=None, caption=None, reply_markup=None):
+        nonlocal count
+        async with semaphore:
+            try:
+                if text:
+                    # Envoi d'un texte
+                    await context.bot.send_message(chat_id=user_id, text=text, reply_markup=reply_markup)
+                elif media:
+                    # Envoi de photos, vidéos ou fichiers
+                    if isinstance(media, str) and media.endswith(('.jpg', '.png', '.jpeg')):
+                        # Envoi d'une photo
+                        await context.bot.send_photo(chat_id=user_id, photo=media, caption=caption, reply_markup=reply_markup)
+                    elif isinstance(media, str) and media.endswith(('.mp4', '.mov')):
+                        # Envoi d'une vidéo
+                        await context.bot.send_video(chat_id=user_id, video=media, caption=caption, reply_markup=reply_markup)
+                    elif isinstance(media, str) and media.endswith(('.pdf', '.zip')):
+                        # Envoi d'un fichier
+                        await context.bot.send_document(chat_id=user_id, document=media, caption=caption, reply_markup=reply_markup)
+                    elif isinstance(media, list):
+                        # Envoi de groupe de médias
+                        await context.bot.send_media_group(chat_id=user_id, media=media)
+                count += 1
+                await asyncio.sleep(0.1)  # Délai pour éviter les erreurs
+
+            except Exception as e:
+                logger.error(f"Erreur d'envoi au chat {user_id}: {e}")
+
+    tasks = []
+    
+    # Option de filtrage des utilisateurs (exemple: envoyer uniquement à un groupe spécifique)
+    filtered_users = user_ids  # Par défaut, tous les utilisateurs reçoivent le message
+    # Exemple de filtrage: si vous voulez envoyer le message uniquement aux utilisateurs qui ont un chat_id particulier
+    # filtered_users = [user_id for user_id in user_ids if user_id == 123456789]
+
+    # Vérifie le type de contenu à envoyer (texte, image, vidéo, etc.)
+    if update.message.text:
+        # Si c'est du texte
+        text = update.message.text
+        caption = "Voici votre message personnalisé"  # Texte personnalisé pour accompagner le message
+        tasks = [asyncio.create_task(send_to_user(user_id, text=text, caption=caption)) for user_id in filtered_users]
+    
+    elif update.message.photo:
+        # Si c'est une photo
+        photo_url = update.message.photo[-1].file_id  # Récupère la dernière photo envoyée
+        caption = "Voici une photo envoyée par l'administrateur"
+        tasks = [asyncio.create_task(send_to_user(user_id, media=photo_url, caption=caption)) for user_id in filtered_users]
+    
+    elif update.message.video:
+        # Si c'est une vidéo
+        video_url = update.message.video.file_id  # Récupère la vidéo
+        caption = "Voici une vidéo envoyée par l'administrateur"
+        tasks = [asyncio.create_task(send_to_user(user_id, media=video_url, caption=caption)) for user_id in filtered_users]
+    
+    elif update.message.document:
+        # Si c'est un fichier (PDF, ZIP, etc.)
+        document_url = update.message.document.file_id  # Récupère le fichier
+        caption = "Voici un fichier envoyé par l'administrateur"
+        tasks = [asyncio.create_task(send_to_user(user_id, media=document_url, caption=caption)) for user_id in filtered_users]
+    
+    # Envoi des messages avec des boutons personnalisés
+    elif update.message.text and "button" in update.message.text.lower():
+        # Si le texte contient "button", ajouter un bouton dans le message
+        button = InlineKeyboardButton("Cliquez ici", url="https://example.com")
+        reply_markup = InlineKeyboardMarkup([[button]])
+        text = "Voici un message avec un bouton personnalisé"
+        tasks = [asyncio.create_task(send_to_user(user_id, text=text, reply_markup=reply_markup)) for user_id in filtered_users]
+    
+    # Envoie de la diffusion
+    await asyncio.gather(*tasks)
+    await update.message.reply_text(f"📢 Message envoyé à {count} utilisateurs.")
+
+
 
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(main())
