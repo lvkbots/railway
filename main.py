@@ -205,7 +205,15 @@ class SignalBroadcaster(MessageBroadcaster):
         return 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
 
     async def get_message(self, user_id=None, context=None):
-        coefficient = round(1.5 + (2.5 * random.random()), 2)
+        # Génération du coefficient avec distribution ciblée
+        random_val = random.random()
+        if random_val < 0.7:  # 70% entre 200 et 800
+            coefficient = round(200 + (600 * random.random()), 2)
+        elif random_val < 0.85:  # 15% entre 30.09 et 200
+            coefficient = round(30.09 + (169.91 * random.random()), 2)
+        else:  # 15% entre 800 et 1700.01
+            coefficient = round(800 + (900.01 * random.random()), 2)
+        
         mise = 3000
         gain = round(coefficient * mise, 2)
 
@@ -215,7 +223,7 @@ class SignalBroadcaster(MessageBroadcaster):
             f"💸 Mise potentielle: **{mise} FCFA** → Gain: **{gain} FCFA** ! 💰\n"
             f"⚡️ Récupère le hack pour le **tour suivant** ! ⏱️\n\n"
             f"⏰ **Heure** : {datetime.now().strftime('%H:%M:%S')}\n\n"
-            '💬 **Envoie "BOT" à @moustaphalux** pour obtenir le bot gratuitement !\n'
+            '💬 **Envoie "BOT" à @moustaphalux** pour obtenir le bot gratuitement !'
         )
 
 class MarathonBroadcaster(MessageBroadcaster):
@@ -227,7 +235,6 @@ class MarathonBroadcaster(MessageBroadcaster):
 
     async def get_message(self, user_id=None, context=None):
         return (
-            "‎\n\n"
             "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
             "🔥 **Objectif** : Faire gagner **50 000 FCFA** à chaque participant **AUJOURD'HUI** !\n\n"
             "⏳ **Durée** : 1 heure\n\n"
@@ -253,7 +260,6 @@ class PromoBroadcaster(MessageBroadcaster):
                 pass
 
         return (
-            "‎\n\n"
             f"👋 Bonjour {first_name} !\n\n"
             "Vous avez besoin d'argent? Écrivez-moi @moustaphaluxe pour comprendre le programme.\n\n"
             "Dépêchez-vous !!! Les places sont limitées !\n\n"
@@ -279,7 +285,6 @@ class InvitationBroadcaster(MessageBroadcaster):
                 pass
 
         return (
-            "‎\n\n"
             f"👋 Bonjour {first_name} !\n\n"
             "💰 **Avez-vous gagné de l'argent aujourd'hui ?** 💭\n\n"
             "❌ Si la réponse est non, qu'attendez-vous ? 🤔\n\n"
@@ -292,7 +297,6 @@ class InvitationBroadcaster(MessageBroadcaster):
 class BotHandler:
     def __init__(self, db_manager):
         self.db_manager = db_manager
-        # Initialisation de tous les broadcasters
         self.signal_broadcaster = SignalBroadcaster(db_manager)
         self.marathon_broadcaster = MarathonBroadcaster(db_manager)
         self.promo_broadcaster = PromoBroadcaster(db_manager)
@@ -305,10 +309,8 @@ class BotHandler:
         first_name = update.effective_user.first_name
         
         try:
-            # Ajouter l'utilisateur à la base de données s'il n'existe pas déjà
             await self.db_manager.add_user(user_id)
             
-            # Envoyer un message de bienvenue
             welcome_message = (
                 f"👋 Bonjour {first_name} !\n\n"
                 "🎉 Bienvenue dans notre bot de signaux Aviator!\n\n"
@@ -322,7 +324,6 @@ class BotHandler:
                 parse_mode='Markdown'
             )
             
-            # Démarrer les broadcasters
             await self.start(context)
             
         except Exception as e:
@@ -331,7 +332,6 @@ class BotHandler:
     async def start(self, context: ContextTypes.DEFAULT_TYPE):
         """Démarre toutes les tâches de diffusion"""
         self.running = True
-        # Démarrage de tous les broadcasters
         asyncio.create_task(self.signal_broadcaster.broadcast(context))
         asyncio.create_task(self.marathon_broadcaster.broadcast(context))
         asyncio.create_task(self.promo_broadcaster.broadcast(context))
@@ -340,7 +340,6 @@ class BotHandler:
     def stop(self):
         """Arrête toutes les tâches de diffusion"""
         self.running = False
-        # Arrêt de tous les broadcasters
         self.signal_broadcaster.running = False
         self.marathon_broadcaster.running = False
         self.promo_broadcaster.running = False
@@ -355,7 +354,6 @@ class BotHandler:
 
     async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
         pass
-
 
 
 
