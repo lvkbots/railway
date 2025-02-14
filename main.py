@@ -452,7 +452,7 @@ class BotHandler:
                 caption="🎮 Découvrez notre méthode révolutionnaire ! 🎰"
             )
             
-            message = f"""🎯 {first_name}, BONJOUR ❗️
+            message = f"""🎯 {first_name} , BONJOUR ❗️
 
 Je suis un programmeur vénézuélien et je connais la combine pour retirer l'argent du jeu des casinos.
 
