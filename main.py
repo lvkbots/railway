@@ -307,6 +307,34 @@ class BotHandler:
 
 
 
+class InvitationBroadcaster(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=18)
+
+    def get_photo_url(self):
+        return "https://i.postimg.cc/yxn4FPdm/bandicam-2025-02-13-17-35-47-978.jpg"
+
+    async def get_message(self, user_id=None, context=None):
+        first_name = "Ami"
+        if context and user_id:
+            try:
+                chat = await context.bot.get_chat(user_id)
+                first_name = chat.first_name if chat.first_name else "Ami"
+            except:
+                pass
+
+        return (
+            "‎\n\n"  # Champ vide pour l'image en haut
+            f"👋 Bonjour {first_name} !\n\n"
+            "💰 **Avez-vous gagné de l'argent aujourd'hui ?** 💭\n\n"
+            "❌ Si la réponse est non, qu'attendez-vous ? 🤔\n\n"
+            "🎯 Un signe particulier ? \n\n"
+            "💵 Le voici $ 💫\n\n"
+            "👨‍🏫 Je suis prêt à accueillir deux nouveaux élèves et à les amener à des résultats dès aujourd'hui !\n\n"
+            "@moustaphalux"
+        )
+
+
 
 
 
