@@ -44,14 +44,14 @@ MEDIA_RESOURCES = {
     "main_image": "https://i.ytimg.com/vi/KolFup7TxOM/hq720.jpg",
     "bottom_image": "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png",
     "payment_proofs": [
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png"
+        "https://i.postimg.cc/fRDSWT41/photo-2025-02-13-14-41-26-2.jpg",
+        "https://i.postimg.cc/VNHJFqSc/photo-2025-02-13-14-41-25-2.jpg",
+        "https://i.postimg.cc/RF6NpWfJ/photo-2025-02-13-14-41-25.jpg",
+        "https://i.postimg.cc/MH1Xxg9W/photo-2025-02-13-14-41-26.jpg",
+        "https://i.postimg.cc/zDkrZJjy/bandicam-2025-02-13-17-36-48-522.jpg"
     ],
     "info_images": [
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
+        "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
         "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
         "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
         "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
