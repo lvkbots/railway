@@ -124,27 +124,22 @@ class KeyboardManager:
 
 
 import asyncio
-import random
 import logging
+import random
 from datetime import datetime
 from telegram.ext import ContextTypes
+from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
 
-class BotHandler:
-    def __init__(self, db_manager):
+class MessageBroadcaster(ABC):
+    def __init__(self, db_manager, delay_seconds):
         self.db_manager = db_manager
+        self.delay = delay_seconds
         self.running = True
 
-    async def start(self, context: ContextTypes.DEFAULT_TYPE):
-        """Lance les trois tâches d'envoi en parallèle."""
-        self.running = True
-        asyncio.create_task(self.auto_broadcast_signal(context))
-        asyncio.create_task(self.auto_broadcast_marathon(context))
-        asyncio.create_task(self.auto_broadcast_bill_gates(context))
-
-    async def send_message(self, context, user_id, text, photo_url, max_retries=3):
-        """Envoie un message avec photo en gérant les erreurs et les tentatives."""
+    async def send_message_with_photo(self, context, user_id, text, photo_url, max_retries=3):
+        """Méthode commune pour envoyer un message avec photo"""
         for attempt in range(max_retries):
             try:
                 await context.bot.send_message(
@@ -152,113 +147,150 @@ class BotHandler:
                     text=text,
                     parse_mode='Markdown'
                 )
-                await asyncio.sleep(1)  # Pause entre le texte et la photo
                 if photo_url:
+                    await asyncio.sleep(0.5)
                     await context.bot.send_photo(
                         chat_id=user_id,
                         photo=photo_url
                     )
                 return True
             except Exception as e:
-                logger.error(f"Erreur envoi à {user_id} (Tentative {attempt+1}/{max_retries}): {e}")
-                await asyncio.sleep(2)
+                logger.error(f"Tentative {attempt + 1}/{max_retries} échouée pour {user_id}: {str(e)}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2)
         return False
 
-    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
-        """Diffuse le signal de trading après un délai initial de 10 secondes."""
-        await asyncio.sleep(10)  # Délai initial pour le signal
-        while self.running:
-            try:
-                coefficient = round(random.uniform(1.5, 5.0), 2)
-                mise = 3000
-                gain = round(coefficient * mise, 2)
-                message = (
-                    f"🚀 **SIGNAL TOUR SUIVANT Aviator Prediction** 📈\n\n"
-                    f"🎯 Coefficient : **{coefficient}x**\n"
-                    f"💸 Mise : **{mise} FCFA** → Gain : **{gain} FCFA**\n"
-                    f"⏰ Heure : {datetime.now().strftime('%H:%M:%S')}\n\n"
-                    '💬 **Envoyez "BOT" à @moustaphalux** pour récupérer le bot gratuitement !\n'
-                )
-                await self.send_to_users(
-                    context,
-                    message,
-                    'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
-                )
-            except Exception as e:
-                logger.error(f"Erreur dans auto_broadcast_signal: {e}")
-            finally:
-                # Attente avant le prochain envoi
-                await asyncio.sleep(3420)
+    @abstractmethod
+    async def get_message(self, user_id=None, context=None):
+        """Chaque classe doit implémenter sa propre logique de message"""
+        pass
 
-    async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
-        """Diffuse l'annonce du Marathon après un délai initial de 20 secondes."""
-        await asyncio.sleep(20)  # Délai initial pour le marathon
-        while self.running:
-            try:
-                message = (
-                    "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
-                    "🔥 **Gagnez 50 000 FCFA AUJOURD'HUI !**\n\n"
-                    "📹 **Suivi en vidéo en direct !**\n\n"
-                    "💬 **Envoyez 'MARATHON' pour participer !**\n\n"
-                    "@moustaphalux\n"
-                )
-                await self.send_to_users(
-                    context,
-                    message,
-                    "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
-                )
-            except Exception as e:
-                logger.error(f"Erreur dans auto_broadcast_marathon: {e}")
-            finally:
-                await asyncio.sleep(7070)
+    @abstractmethod
+    def get_photo_url(self):
+        """Chaque classe doit fournir son URL de photo"""
+        pass
 
-    async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
-        """Diffuse le message promotionnel Bill Gates après un délai initial de 15 secondes."""
-        await asyncio.sleep(15)  # Délai initial pour Bill Gates
+    async def broadcast(self, context):
+        """Méthode commune de diffusion"""
         while self.running:
             try:
-                base_message = (
-                    "Besoin d'argent ? Contactez @moustaphalux pour découvrir mon programme.\n\n"
-                    "Dépêchez-vous, places limitées !\n\n"
-                    "@moustaphalux\n"
-                )
-                user_ids = await self.db_manager.get_all_users()
-                success_count = 0
-                for user_id in user_ids:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+                
+                for user_id in users:
                     if not self.running:
                         break
-                    try:
-                        chat = await context.bot.get_chat(user_id)
-                        first_name = chat.first_name if chat.first_name else "Ami"
-                        message = f"Salut {first_name}!\n\n" + base_message
-                        if await self.send_message(
-                            context,
-                            user_id,
-                            message,
-                            "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
-                        ):
-                            success_count += 1
-                        await asyncio.sleep(0.5)
-                    except Exception as user_error:
-                        logger.error(f"Erreur avec l'utilisateur {user_id}: {user_error}")
-                logger.info(f"Message Bill Gates envoyé à {success_count}/{len(user_ids)} utilisateurs")
+                    
+                    message = await self.get_message(user_id, context)
+                    await self.send_message_with_photo(
+                        context,
+                        user_id,
+                        message,
+                        self.get_photo_url()
+                    )
+                    await asyncio.sleep(0.5)
+
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+
             except Exception as e:
-                logger.error(f"Erreur dans auto_broadcast_bill_gates: {e}")
-            finally:
-                await asyncio.sleep(27354)
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
 
-    async def send_to_users(self, context, message, photo_url):
-        """Envoie le message à tous les utilisateurs enregistrés."""
-        user_ids = await self.db_manager.get_all_users()
-        success_count = 0
-        for user_id in user_ids:
-            if not self.running:
-                break
-            if await self.send_message(context, user_id, message, photo_url):
-                success_count += 1
-            await asyncio.sleep(0.5)
-        logger.info(f"Message envoyé à {success_count}/{len(user_ids)} utilisateurs")
+class SignalBroadcaster(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=10)
 
+    def get_photo_url(self):
+        return 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
+
+    async def get_message(self, user_id=None, context=None):
+        coefficient = round(1.5 + (2.5 * random.random()), 2)
+        mise = 3000
+        gain = round(coefficient * mise, 2)
+
+        return (
+            f"🚀 **SIGNAL TOUR SUIVANT Aviator Prediction** 📈\n\n"
+            f"🎯 Le coefficient pour ce tour est de **{coefficient}x**.\n\n"
+            f"💸 Mise potentielle: **{mise} FCFA** → Gain: **{gain} FCFA** ! 💰\n"
+            f"⚡️ Récupère le hack pour le **tour suivant** ! ⏱️\n\n"
+            f"⏰ **Heure** : {datetime.now().strftime('%H:%M:%S')}\n\n"
+            '💬 **Envoie "BOT" à @moustaphalux** pour obtenir le bot gratuitement !\n'
+        )
+
+class MarathonBroadcaster(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=20)
+
+    def get_photo_url(self):
+        return "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
+
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
+            "🔥 **Objectif** : Faire gagner **50 000 FCFA** à chaque participant **AUJOURD'HUI** !\n\n"
+            "⏳ **Durée** : 1 heure\n\n"
+            "📹 **Guide personnel avec liaison vidéo !**\n\n"
+            "💬 **Envoyez 'MARATHON'** pour participer !\n\n"
+            "@moustaphalux @moustaphalux @moustaphalux"
+        )
+
+class PromoBroadcaster(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=15)
+
+    def get_photo_url(self):
+        return "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
+
+    async def get_message(self, user_id=None, context=None):
+        first_name = "Ami"
+        if context and user_id:
+            try:
+                chat = await context.bot.get_chat(user_id)
+                first_name = chat.first_name if chat.first_name else "Ami"
+            except:
+                pass
+
+        base_message = (
+            "Vous avez besoin d'argent? Écrivez-moi @moustaphaluxe pour comprendre le programme.\n\n"
+            "Dépêchez-vous !!! Les places sont limitées !\n\n"
+            "@moustaphalux\n\n"
+            "@moustaphalux\n\n"
+            "@moustaphalux"
+        )
+        return f"Salut {first_name}!\n\n" + base_message
+
+class BotHandler:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+        self.signal_broadcaster = SignalBroadcaster(db_manager)
+        self.marathon_broadcaster = MarathonBroadcaster(db_manager)
+        self.promo_broadcaster = PromoBroadcaster(db_manager)
+        self.running = True
+
+    async def start(self, context: ContextTypes.DEFAULT_TYPE):
+        """Démarre toutes les tâches de diffusion"""
+        self.running = True
+        asyncio.create_task(self.signal_broadcaster.broadcast(context))
+        asyncio.create_task(self.marathon_broadcaster.broadcast(context))
+        asyncio.create_task(self.promo_broadcaster.broadcast(context))
+
+    def stop(self):
+        """Arrête toutes les tâches de diffusion"""
+        self.running = False
+        self.signal_broadcaster.running = False
+        self.marathon_broadcaster.running = False
+        self.promo_broadcaster.running = False
+
+    # Méthodes de compatibilité
+    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+        await self.start(context)
+
+    async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
+        pass
+
+    async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
+        pass
 
 
 
