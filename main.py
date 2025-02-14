@@ -197,7 +197,6 @@ class MessageBroadcaster(ABC):
                 logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
                 await asyncio.sleep(5)
 
-# -------------------- SIGNAL BROADCASTER --------------------
 class SignalBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=10)
@@ -206,16 +205,7 @@ class SignalBroadcaster(MessageBroadcaster):
         return 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
 
     async def get_message(self, user_id=None, context=None):
-        # Generate coefficient with higher probability between 200 and 800
-        rand = random.random()
-        if rand < 0.7:  # 70% chance for 200-800 range
-            coefficient = round(200 + (600 * random.random()), 2)
-        else:  # 30% chance for other ranges
-            if rand < 0.85:  # 15% chance for 30.09-199.99
-                coefficient = round(30.09 + (169.90 * random.random()), 2)
-            else:  # 15% chance for 800.01-1700.01
-                coefficient = round(800.01 + (900 * random.random()), 2)
-
+        coefficient = round(1.5 + (2.5 * random.random()), 2)
         mise = 3000
         gain = round(coefficient * mise, 2)
 
@@ -228,7 +218,6 @@ class SignalBroadcaster(MessageBroadcaster):
             '💬 **Envoie "BOT" à @moustaphalux** pour obtenir le bot gratuitement !\n'
         )
 
-# -------------------- MARATHON BROADCASTER --------------------
 class MarathonBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=20)
@@ -238,6 +227,7 @@ class MarathonBroadcaster(MessageBroadcaster):
 
     async def get_message(self, user_id=None, context=None):
         return (
+            "‎\n\n"
             "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
             "🔥 **Objectif** : Faire gagner **50 000 FCFA** à chaque participant **AUJOURD'HUI** !\n\n"
             "⏳ **Durée** : 1 heure\n\n"
@@ -246,7 +236,6 @@ class MarathonBroadcaster(MessageBroadcaster):
             "@moustaphalux @moustaphalux @moustaphalux"
         )
 
-# -------------------- PROMO BROADCASTER --------------------
 class PromoBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=15)
@@ -264,48 +253,14 @@ class PromoBroadcaster(MessageBroadcaster):
                 pass
 
         return (
-            f"👋 Salut {first_name}!\n\n"
-            "💰 Vous avez besoin d'argent?\n"
-            "✍️ Écrivez-moi @moustaphaluxe pour comprendre le programme.\n\n"
-            "⚡️ Dépêchez-vous !!! Les places sont limitées !\n\n"
-            "🔥 @moustaphalux\n\n"
-            "🌟 @moustaphalux\n\n"
-            "✨ @moustaphalux"
+            "‎\n\n"
+            f"👋 Bonjour {first_name} !\n\n"
+            "Vous avez besoin d'argent? Écrivez-moi @moustaphaluxe pour comprendre le programme.\n\n"
+            "Dépêchez-vous !!! Les places sont limitées !\n\n"
+            "@moustaphalux\n\n"
+            "@moustaphalux\n\n"
+            "@moustaphalux"
         )
-
-class BotHandler:
-    def __init__(self, db_manager):
-        self.db_manager = db_manager
-        self.signal_broadcaster = SignalBroadcaster(db_manager)
-        self.marathon_broadcaster = MarathonBroadcaster(db_manager)
-        self.promo_broadcaster = PromoBroadcaster(db_manager)
-        self.running = True
-
-    async def start(self, context: ContextTypes.DEFAULT_TYPE):
-        """Démarre toutes les tâches de diffusion"""
-        self.running = True
-        asyncio.create_task(self.signal_broadcaster.broadcast(context))
-        asyncio.create_task(self.marathon_broadcaster.broadcast(context))
-        asyncio.create_task(self.promo_broadcaster.broadcast(context))
-
-    def stop(self):
-        """Arrête toutes les tâches de diffusion"""
-        self.running = False
-        self.signal_broadcaster.running = False
-        self.marathon_broadcaster.running = False
-        self.promo_broadcaster.running = False
-
-    # Méthodes de compatibilité
-    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
-        await self.start(context)
-
-    async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
-        pass
-
-    async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
-        pass
-
-
 
 class InvitationBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
@@ -324,7 +279,7 @@ class InvitationBroadcaster(MessageBroadcaster):
                 pass
 
         return (
-            "‎\n\n"  # Champ vide pour l'image en haut
+            "‎\n\n"
             f"👋 Bonjour {first_name} !\n\n"
             "💰 **Avez-vous gagné de l'argent aujourd'hui ?** 💭\n\n"
             "❌ Si la réponse est non, qu'attendez-vous ? 🤔\n\n"
@@ -334,6 +289,72 @@ class InvitationBroadcaster(MessageBroadcaster):
             "@moustaphalux"
         )
 
+class BotHandler:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+        # Initialisation de tous les broadcasters
+        self.signal_broadcaster = SignalBroadcaster(db_manager)
+        self.marathon_broadcaster = MarathonBroadcaster(db_manager)
+        self.promo_broadcaster = PromoBroadcaster(db_manager)
+        self.invitation_broadcaster = InvitationBroadcaster(db_manager)
+        self.running = True
+
+    async def start_command(self, update, context):
+        """Gestionnaire de la commande /start"""
+        user_id = update.effective_user.id
+        first_name = update.effective_user.first_name
+        
+        try:
+            # Ajouter l'utilisateur à la base de données s'il n'existe pas déjà
+            await self.db_manager.add_user(user_id)
+            
+            # Envoyer un message de bienvenue
+            welcome_message = (
+                f"👋 Bonjour {first_name} !\n\n"
+                "🎉 Bienvenue dans notre bot de signaux Aviator!\n\n"
+                "💫 Vous recevrez automatiquement nos signaux exclusifs.\n\n"
+                "🚀 Restez connecté pour ne manquer aucune opportunité !"
+            )
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=welcome_message,
+                parse_mode='Markdown'
+            )
+            
+            # Démarrer les broadcasters
+            await self.start(context)
+            
+        except Exception as e:
+            logger.error(f"Erreur dans start_command pour {user_id}: {str(e)}")
+
+    async def start(self, context: ContextTypes.DEFAULT_TYPE):
+        """Démarre toutes les tâches de diffusion"""
+        self.running = True
+        # Démarrage de tous les broadcasters
+        asyncio.create_task(self.signal_broadcaster.broadcast(context))
+        asyncio.create_task(self.marathon_broadcaster.broadcast(context))
+        asyncio.create_task(self.promo_broadcaster.broadcast(context))
+        asyncio.create_task(self.invitation_broadcaster.broadcast(context))
+
+    def stop(self):
+        """Arrête toutes les tâches de diffusion"""
+        self.running = False
+        # Arrêt de tous les broadcasters
+        self.signal_broadcaster.running = False
+        self.marathon_broadcaster.running = False
+        self.promo_broadcaster.running = False
+        self.invitation_broadcaster.running = False
+
+    # Méthodes de compatibilité
+    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+        await self.start(context)
+
+    async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
+        pass
+
+    async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
+        pass
 
 
 
