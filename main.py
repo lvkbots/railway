@@ -41,7 +41,7 @@ ADMIN_ID = 7392567951
 # Ressources médias (inchangées)
 MEDIA_RESOURCES = {
     "intro_video": "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
-    "main_image": "https://i.ytimg.com/vi/KolFup7TxOM/hq720.jpg",
+    "main_image": "https://i.postimg.cc/05CCgr53/photo-2025-02-17-09-41-43.jpg",
     "bottom_image": "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png",
     "payment_proofs": [
         "https://i.postimg.cc/fRDSWT41/photo-2025-02-13-14-41-26-2.jpg",
