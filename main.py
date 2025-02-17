@@ -10,6 +10,7 @@ from datetime import datetime
 from flask import Flask
 import aiosqlite
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
+from telegram.ext import MessageHandler, filters
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -97,13 +98,13 @@ class KeyboardManager:
         keyboard = [
             [InlineKeyboardButton("🎯 Informations sur les bots", callback_data="info_bots")],
             [InlineKeyboardButton("💰 Retrait du casino", callback_data="casino_withdrawal")],
-            [InlineKeyboardButton("📱 Contacter l'expert", url="https://t.me/BILL_GATES_HACKS")]
+            [InlineKeyboardButton("📱 Contacter l'expert", url="https://t.me/BILLGATESHACK")]
         ]
         return InlineKeyboardMarkup(keyboard)
 
     @staticmethod
     def create_program_button():
-        keyboard = [[InlineKeyboardButton("🚀 OBTENIR LE PROGRAMME MAINTENANT", url="https://t.me/BILL_GATES_HACKS")]]
+        keyboard = [[InlineKeyboardButton("🚀 OBTENIR LE PROGRAMME MAINTENANT", url="https://t.me/BILLGATESHACK")]]
         return InlineKeyboardMarkup(keyboard)
 
 
@@ -129,7 +130,9 @@ import logging
 import random
 from datetime import datetime
 from telegram.ext import ContextTypes
+from telegram.ext import MessageHandler, filters
 from abc import ABC, abstractmethod
+
 
 logger = logging.getLogger(__name__)
 
@@ -224,7 +227,7 @@ class SignalBroadcaster(MessageBroadcaster):
             f"💸 Mise potentielle: **{mise} FCFA** → Gain: **{gain} FCFA** ! 💰\n"
             f"⚡️ Récupère le hack pour le **tour suivant** ! ⏱️\n\n"
             f"⏰ **Heure** : {datetime.now().strftime('%H:%M:%S')}\n\n"
-            '💬 **Envoie "BOT" à @BILL_GATES_HACKS** pour obtenir le bot gratuitement !'
+            '💬 **Envoie "BOT" à @BILLGATESHACK** pour obtenir le bot gratuitement !'
         )
 
 class MarathonBroadcaster(MessageBroadcaster):
@@ -241,7 +244,7 @@ class MarathonBroadcaster(MessageBroadcaster):
             "⏳ **Durée** : 1 heure\n\n"
             "📹 **Guide personnel avec liaison vidéo !**\n\n"
             "💬 **Envoyez 'MARATHON'** pour participer !\n\n"
-            "@BILL_GATES_HACKS @BILL_GATES_HACKS @BILL_GATES_HACKS"
+            "@BILLGATESHACK @BILLGATESHACK @BILLGATESHACK"
         )
 
 class PromoBroadcaster(MessageBroadcaster):
@@ -262,11 +265,11 @@ class PromoBroadcaster(MessageBroadcaster):
 
         return (
             f"👋 Bonjour {first_name} !\n\n"
-            "Vous avez besoin d'argent? Écrivez-moi @BILL_GATES_HACKSe pour comprendre le programme.\n\n"
+            "Vous avez besoin d'argent? Écrivez-moi @BILLGATESHACKe pour comprendre le programme.\n\n"
             "Dépêchez-vous !!! Les places sont limitées !\n\n"
-            "@BILL_GATES_HACKS\n\n"
-            "@BILL_GATES_HACKS\n\n"
-            "@BILL_GATES_HACKS"
+            "@BILLGATESHACK\n\n"
+            "@BILLGATESHACK\n\n"
+            "@BILLGATESHACK"
         )
 
 class InvitationBroadcaster(MessageBroadcaster):
@@ -292,7 +295,7 @@ class InvitationBroadcaster(MessageBroadcaster):
             "🎯 Un signe particulier ? \n\n"
             "💵 Le voici $ 💫\n\n"
             "👨‍🏫 Je suis prêt à accueillir deux nouveaux élèves et à les amener à des résultats dès aujourd'hui !\n\n"
-            "@BILL_GATES_HACKS"
+            "@BILLGATESHACK"
         )
 
 class BotHandler:
@@ -304,6 +307,36 @@ class BotHandler:
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
 
+
+
+
+    async def handle_message(self, update, context):
+        """Gestionnaire pour tous les messages texte"""
+        user_id = update.effective_user.id
+        
+        message = (
+            "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
+            "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
+        )
+        
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=message,
+                parse_mode='Markdown'
+            )
+        except Exception as e:
+            logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
+
+    def register_handlers(self, application):
+        """Enregistre les gestionnaires de messages"""
+        message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
+        application.add_handler(message_handler)
+
+
+
+
+    
     async def start_command(self, update, context):
         """Gestionnaire de la commande /start"""
         user_id = update.effective_user.id
