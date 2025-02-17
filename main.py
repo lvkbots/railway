@@ -488,13 +488,13 @@ class BotHandler:
             
             message = f"""🎯 BONJOUR ❗️
 
-Je suis un programmeur vénézuélien et je connais la combine pour retirer l'argent du jeu des casinos.
+Je suis un programmeur et je travaille avec des Russes et je connais la combine pour retirer l'argent des jeux casinos.
 
 ✅ 1800 personnes ont déjà gagné avec moi. Et je peux vous garantir en toute confiance que vous gagnerez.
 
 💫 Vous pouvez gagner de l'argent sans rien faire, car j'ai déjà fait tout le programme pour vous.
 
-🔥 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y')}"""
+🔥 Dernière mise à jour du Hack: {datetime.now().strftime('%d/%m/%Y')}"""
 
             await update.message.reply_photo(
                 photo=MEDIA_RESOURCES["main_image"],
