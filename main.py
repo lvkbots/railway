@@ -52,10 +52,11 @@ MEDIA_RESOURCES = {
     ],
     "info_images": [
         "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png",
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Circle_sign_2.svg/1024px-Circle_sign_2.svg.png"
+        "https://i.postimg.cc/6QGXDnjK/bandicam-2025-02-13-17-33-14-929.jpg",
+        "https://i.postimg.cc/zf3B3yx2/bandicam-2025-02-13-17-24-18-009.jpg",
+        "https://res.cloudinary.com/upwork-cloud/image/upload/c_scale,w_1000/v1698534187/catalog/1718401794832568320/ankmeq1prhkm9pnkhujv.jpg",
+        "https://i.postimg.cc/mgn4X8SV/bandicam-2025-02-13-17-33-57-485.jpg",
+        "https://media.licdn.com/dms/image/D5622AQGO3fuy3Xsi1w/feedshare-shrink_2048_1536/0/1717229135545?e=2147483647&v=beta&t=bj-cWzd74icpjK9Vb5mL6DhXXvdCz12alcJLQvqSg3s"
     ]
 }
 
@@ -96,13 +97,13 @@ class KeyboardManager:
         keyboard = [
             [InlineKeyboardButton("🎯 Informations sur les bots", callback_data="info_bots")],
             [InlineKeyboardButton("💰 Retrait du casino", callback_data="casino_withdrawal")],
-            [InlineKeyboardButton("📱 Contacter l'expert", url="https://t.me/judespronos")]
+            [InlineKeyboardButton("📱 Contacter l'expert", url="https://t.me/BILL_GATES_HACKS")]
         ]
         return InlineKeyboardMarkup(keyboard)
 
     @staticmethod
     def create_program_button():
-        keyboard = [[InlineKeyboardButton("🚀 OBTENIR LE PROGRAMME MAINTENANT", url="https://t.me/judespronos")]]
+        keyboard = [[InlineKeyboardButton("🚀 OBTENIR LE PROGRAMME MAINTENANT", url="https://t.me/BILL_GATES_HACKS")]]
         return InlineKeyboardMarkup(keyboard)
 
 
@@ -223,12 +224,12 @@ class SignalBroadcaster(MessageBroadcaster):
             f"💸 Mise potentielle: **{mise} FCFA** → Gain: **{gain} FCFA** ! 💰\n"
             f"⚡️ Récupère le hack pour le **tour suivant** ! ⏱️\n\n"
             f"⏰ **Heure** : {datetime.now().strftime('%H:%M:%S')}\n\n"
-            '💬 **Envoie "BOT" à @moustaphalux** pour obtenir le bot gratuitement !'
+            '💬 **Envoie "BOT" à @BILL_GATES_HACKS** pour obtenir le bot gratuitement !'
         )
 
 class MarathonBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=20)
+        super().__init__(db_manager, delay_seconds=9201)
 
     def get_photo_url(self):
         return "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
@@ -240,12 +241,12 @@ class MarathonBroadcaster(MessageBroadcaster):
             "⏳ **Durée** : 1 heure\n\n"
             "📹 **Guide personnel avec liaison vidéo !**\n\n"
             "💬 **Envoyez 'MARATHON'** pour participer !\n\n"
-            "@moustaphalux @moustaphalux @moustaphalux"
+            "@BILL_GATES_HACKS @BILL_GATES_HACKS @BILL_GATES_HACKS"
         )
 
 class PromoBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=15)
+        super().__init__(db_manager, delay_seconds=1527)
 
     def get_photo_url(self):
         return "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
@@ -261,16 +262,16 @@ class PromoBroadcaster(MessageBroadcaster):
 
         return (
             f"👋 Bonjour {first_name} !\n\n"
-            "Vous avez besoin d'argent? Écrivez-moi @moustaphaluxe pour comprendre le programme.\n\n"
+            "Vous avez besoin d'argent? Écrivez-moi @BILL_GATES_HACKSe pour comprendre le programme.\n\n"
             "Dépêchez-vous !!! Les places sont limitées !\n\n"
-            "@moustaphalux\n\n"
-            "@moustaphalux\n\n"
-            "@moustaphalux"
+            "@BILL_GATES_HACKS\n\n"
+            "@BILL_GATES_HACKS\n\n"
+            "@BILL_GATES_HACKS"
         )
 
 class InvitationBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=18)
+        super().__init__(db_manager, delay_seconds=1805)
 
     def get_photo_url(self):
         return "https://i.postimg.cc/yxn4FPdm/bandicam-2025-02-13-17-35-47-978.jpg"
@@ -291,7 +292,7 @@ class InvitationBroadcaster(MessageBroadcaster):
             "🎯 Un signe particulier ? \n\n"
             "💵 Le voici $ 💫\n\n"
             "👨‍🏫 Je suis prêt à accueillir deux nouveaux élèves et à les amener à des résultats dès aujourd'hui !\n\n"
-            "@moustaphalux"
+            "@BILL_GATES_HACKS"
         )
 
 class BotHandler:
@@ -518,7 +519,7 @@ Je suis un programmeur vénézuélien et je connais la combine pour retirer l'ar
     async def _handle_info(self, context, chat_id):
         await context.bot.send_message(
             chat_id=chat_id,
-            text="""🤖 NOTRE TECHNOLOGIE UNIQUE 🤖
+            text="""🤖 COMMENT LE HACK FONCTIONNE 🤖
 
 ✅ Intelligence artificielle avancée
 🎯 Taux de réussite de 98.7%
