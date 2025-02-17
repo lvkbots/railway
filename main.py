@@ -52,7 +52,7 @@ MEDIA_RESOURCES = {
         "https://i.postimg.cc/zDkrZJjy/bandicam-2025-02-13-17-36-48-522.jpg"
     ],
     "info_images": [
-        "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
+        
         "https://i.postimg.cc/6QGXDnjK/bandicam-2025-02-13-17-33-14-929.jpg",
         "https://i.postimg.cc/zf3B3yx2/bandicam-2025-02-13-17-24-18-009.jpg",
         "https://res.cloudinary.com/upwork-cloud/image/upload/c_scale,w_1000/v1698534187/catalog/1718401794832568320/ankmeq1prhkm9pnkhujv.jpg",
@@ -96,8 +96,8 @@ class KeyboardManager:
     @staticmethod
     def create_main_keyboard():
         keyboard = [
-            [InlineKeyboardButton("🎯 Informations sur les bots", callback_data="info_bots")],
-            [InlineKeyboardButton("💰 Retrait du casino", callback_data="casino_withdrawal")],
+            [InlineKeyboardButton("🎯 COMMENT LE HACK FONCTIONNE", callback_data="info_bots")],
+            [InlineKeyboardButton("💰 PREUVES DE RETRAIT", callback_data="casino_withdrawal")],
             [InlineKeyboardButton("📱 Contacter l'expert", url="https://t.me/BILLGATESHACK")]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -203,7 +203,7 @@ class MessageBroadcaster(ABC):
 
 class SignalBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=10)
+        super().__init__(db_manager, delay_seconds=4210)
 
     def get_photo_url(self):
         return 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
@@ -535,7 +535,7 @@ Je suis un programmeur vénézuélien et je connais la combine pour retirer l'ar
             text="""🎰 PREUVES DE PAIEMENT RÉCENTES 🎰
 
 💎 Ces retraits ont été effectués dans les dernières 24 heures
-✨ Nos utilisateurs gagnent en moyenne 500€ par jour
+✨ Nos utilisateurs gagnent en moyenne 50.000 FCFA par jour
 ⚡️ Méthode 100% automatisée et garantie
 🔒 Aucun risque de perte
 
