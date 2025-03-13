@@ -130,7 +130,7 @@ import logging
 import random
 from datetime import datetime
 from telegram.ext import ContextTypes, Application
-from telegram.ext import MessageHandler, filters, CommandHandler
+from telegram.ext import MessageHandler, filters, CommandHandler, CallbackQueryHandler
 from abc import ABC, abstractmethod
 
 
@@ -307,6 +307,32 @@ class BotHandler:
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
 
+    # Méthode pour gérer les callbacks des boutons (ajout pour résoudre l'erreur)
+    async def handle_button(self, update, context):
+        """Gestionnaire pour les callbacks des boutons interactifs"""
+        try:
+            query = update.callback_query
+            user_id = query.from_user.id
+            
+            # Acquitter le callback pour arrêter l'animation de chargement sur le bouton
+            await query.answer()
+            
+            # Message standard à envoyer en réponse
+            default_message = (
+                "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
+                "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
+            )
+            
+            # Envoyer le message par défaut
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=default_message,
+                parse_mode='Markdown'
+            )
+            
+        except Exception as e:
+            logger.error(f"Erreur dans handle_button: {str(e)}")
+
     # Méthode simplifiée pour répondre à tous les messages
     async def respond_to_all(self, update, context):
         """Répond instantanément à tous les messages avec un message standard"""
@@ -381,6 +407,10 @@ class BotHandler:
         # Gestionnaire spécifique pour /start
         start_handler = CommandHandler("start", self.start_command)
         application.add_handler(start_handler)
+        
+        # Gestionnaire pour les callbacks de boutons
+        button_handler = CallbackQueryHandler(self.handle_button)
+        application.add_handler(button_handler)
         
         # Gestionnaire pour TOUTES les autres interactions (attrape-tout)
         fallback_handler = MessageHandler(filters.ALL & ~filters.COMMAND, self.respond_to_all)
