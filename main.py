@@ -324,15 +324,11 @@ async def handle_message(self, update, context):
         # Si la première méthode échoue, essayer la méthode alternative sans exceptions
         print(f"Erreur lors de l'envoi du message : {e}")
         try:
+            # Envoi du message en cas d'erreur dans la première tentative
             await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!")
         except Exception as e:
             print(f"Erreur lors de l'envoi du message alternatif : {e}")
             pass  # Ignorer les erreurs pour garantir le fonctionnement
-
-def register_handlers(self, application):
-    """Configure le bot pour répondre à tout type de message"""
-    # Capture tous les types de messages possibles pour garantir une réponse
-    application.add_handler(MessageHandler(filters.ALL, self.handle_message))
 
 
 
