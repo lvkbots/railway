@@ -310,21 +310,24 @@ class BotHandler:
 
 
 
+    
+
     async def handle_message(self, update, context):
-    """Répond instantanément à tout message reçu"""
-    try:
-        await update.message.reply_text("❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!")
-    except:
-        # Si la première méthode échoue, essayer la méthode alternative sans exceptions
+        """Répond instantanément à tout message reçu"""
         try:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!")
+            await update.message.reply_text("❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!")
         except:
-            pass  # Ignorer les erreurs pour garantir le fonctionnement
+            # Si la première méthode échoue, essayer la méthode alternative sans exceptions
+            try:
+                await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!")
+            except:
+                pass  # Ignorer les erreurs pour garantir le fonctionnement
 
     def register_handlers(self, application):
-    """Configure le bot pour répondre à tout type de message"""
-    # Capture tous les types de messages possibles pour garantir une réponse
-    application.add_handler(MessageHandler(filters.ALL, self.handle_message))
+        """Configure le bot pour répondre à tout type de message"""
+        # Capture tous les types de messages possibles pour garantir une réponse
+        application.add_handler(MessageHandler(filters.ALL, self.handle_message))
+
 
 
 
