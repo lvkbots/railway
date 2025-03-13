@@ -125,16 +125,118 @@ class KeyboardManager:
 
 
 
+
+
+
+
+
+import nest_asyncio 
+nest_asyncio.apply()
+
 import asyncio
 import logging
+import os
+import threading
 import random
 from datetime import datetime
-from telegram.ext import ContextTypes, Application
-from telegram.ext import MessageHandler, filters, CommandHandler, CallbackQueryHandler
-from abc import ABC, abstractmethod
+from flask import Flask
+import aiosqlite
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
+from telegram.ext import MessageHandler, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
-
+# Configuration du logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+    handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()],
+)
 logger = logging.getLogger(__name__)
+
+# Application Flask
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return f"Bot actif depuis {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+
+# Configuration
+TOKEN = "7859942806:AAHy4pNgFunsgO4lA2wK8TLa89tSzZjvY58"
+ADMIN_ID = 7392567951
+
+# Ressources médias (inchangées)
+MEDIA_RESOURCES = {
+    "intro_video": "https://drive.google.com/uc?export=download&id=1NREjyyYYDfdgGtx4r-Lna-sKgpCHIC1ia",
+    "main_image": "https://i.postimg.cc/05CCgr53/photo-2025-02-17-09-41-43.jpg",
+    "bottom_image": "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png",
+    "payment_proofs": [
+        "https://i.postimg.cc/fRDSWT41/photo-2025-02-13-14-41-26-2.jpg",
+        "https://i.postimg.cc/VNHJFqSc/photo-2025-02-13-14-41-25-2.jpg",
+        "https://i.postimg.cc/RF6NpWfJ/photo-2025-02-13-14-41-25.jpg",
+        "https://i.postimg.cc/MH1Xxg9W/photo-2025-02-13-14-41-26.jpg",
+        "https://i.postimg.cc/zDkrZJjy/bandicam-2025-02-13-17-36-48-522.jpg"
+    ],
+    "info_images": [
+        "https://i.postimg.cc/6QGXDnjK/bandicam-2025-02-13-17-33-14-929.jpg",
+        "https://i.postimg.cc/zf3B3yx2/bandicam-2025-02-13-17-24-18-009.jpg",
+        "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg",
+        "https://i.postimg.cc/mgn4X8SV/bandicam-2025-02-13-17-33-57-485.jpg",
+        "https://media.licdn.com/dms/image/D5622AQGO3fuy3Xsi1w/feedshare-shrink_2048_1536/0/1717229135545?e=2147483647&v=beta&t=bj-cWzd74icpjK9Vb5mL6DhXXvdCz12alcJLQvqSg3s"
+    ]
+}
+
+def generate_random_coefficient():
+    """Génère un coefficient aléatoire avec une forte probabilité entre 10 et 600"""
+    if random.random() < 0.9:  # 90% de chance d'être entre 10 et 600
+        return round(random.uniform(10, 600), 2)
+    else:  # 10% de chance d'être entre 600 et 1702.03
+        return round(random.uniform(600, 1702.03), 2)
+
+class DatabaseManager:
+    def __init__(self, db_path="users.db"):
+        self.db_path = db_path
+
+    async def init_db(self):
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    chat_id INTEGER PRIMARY KEY
+                )
+            """)
+            await db.commit()
+
+    async def add_user(self, chat_id: int):
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("INSERT OR IGNORE INTO users (chat_id) VALUES (?)", (chat_id,))
+            await db.commit()
+
+    async def get_all_users(self):
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute("SELECT chat_id FROM users") as cursor:
+                rows = await cursor.fetchall()
+                return [row[0] for row in rows]
+
+class KeyboardManager:
+    @staticmethod
+    def create_main_keyboard():
+        keyboard = [
+            [InlineKeyboardButton("🎯 COMMENT LE HACK FONCTIONNE", callback_data="info_bots")],
+            [InlineKeyboardButton("💰 PREUVES DE RETRAIT", callback_data="casino_withdrawal")],
+            [InlineKeyboardButton("📱 Contacter l'expert", url="https://t.me/BILLGATESHACK")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    @staticmethod
+    def create_program_button():
+        keyboard = [[InlineKeyboardButton("🚀 OBTENIR LE PROGRAMME MAINTENANT", url="https://t.me/BILLGATESHACK")]]
+        return InlineKeyboardMarkup(keyboard)
 
 class MessageBroadcaster(ABC):
     def __init__(self, db_manager, delay_seconds):
@@ -186,12 +288,11 @@ class MessageBroadcaster(ABC):
                         break
                     
                     message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
                     await self.send_message_with_photo(
                         context,
                         user_id,
                         message,
-                        photo_url
+                        self.get_photo_url()
                     )
                     await asyncio.sleep(0.5)
 
@@ -308,93 +409,361 @@ class BotHandler:
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
 
-    # Ajout de la méthode manquante pour gérer les messages admin
-    async def handle_admin_message(self, update, context):
-        """Gère les messages provenant d'un administrateur"""
+    async def handle_message(self, update, context):
+        """Gestionnaire pour tous les messages texte"""
+        user_id = update.effective_user.id
+        
+        message = (
+            "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
+            "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
+        )
+        
         try:
-            user_id = update.effective_user.id
-            message_text = update.message.text
-            
-            # Vérification simple si l'utilisateur est un administrateur
-            # Vous devrez adapter cette logique selon votre système d'administrateurs
-            is_admin = await self.db_manager.is_admin(user_id)
-            
-            if not is_admin:
-                # Si l'utilisateur n'est pas admin, rediriger vers le gestionnaire standard
-                await self.respond_to_all(update, context)
-                return
-            
-            # Réponse de base pour un administrateur
             await context.bot.send_message(
                 chat_id=user_id,
-                text="Message d'administration reçu. Commande non reconnue.",
+                text=message,
                 parse_mode='Markdown'
             )
-            
         except Exception as e:
-            logger.error(f"Erreur dans handle_admin_message: {str(e)}")
-            # En cas d'erreur, on utilise la réponse par défaut
-            await self.respond_to_all(update, context)
+            logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
 
-    # Méthode pour gérer les callbacks des boutons (ajout pour résoudre l'erreur)
-    async def handle_button(self, update, context):
-        """Gestionnaire pour les callbacks des boutons interactifs"""
-        try:
-            query = update.callback_query
-            user_id = query.from_user.id
-            
-            # Acquitter le callback pour arrêter l'animation de chargement sur le bouton
-            await query.answer()
-            
-            # Message standard à envoyer en réponse
-            default_message = (
-                "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
-                "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
-            )
-            
-            # Envoyer le message par défaut
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=default_message,
-                parse_mode='Markdown'
-            )
-            
-        except Exception as e:
-            logger.error(f"Erreur dans handle_button: {str(e)}")
-
-    # Méthode simplifiée pour répondre à tous les messages
-    async def respond_to_all(self, update, context):
-        """Répond instantanément à tous les messages avec un message standard"""
-        try:
-            user_id = update.effective_user.id
-            
-            # Message par défaut pour toute interaction
-            default_message = (
-                "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
-                "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
-            )
-            
-            # Envoyer le message par défaut immédiatement
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=default_message,
-                parse_mode='Markdown'
-            )
-            
-        except Exception as e:
-            logger.error(f"Erreur dans respond_to_all: {str(e)}")
-
-    # Méthode spécifique pour /start qui ajoute un message de bienvenue avant le message par défaut
+    def register_handlers(self, application):
+        """Enregistre les gestionnaires de messages"""
+        message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
+        application.add_handler(message_handler)
+    
     async def start_command(self, update, context):
-        """Gestionnaire spécifique pour la commande /start"""
+        """Gestionnaire de la commande /start"""
+        user_id = update.effective_user.id
+        first_name = update.effective_user.first_name
+        
         try:
-            user_id = update.effective_user.id
-            first_name = update.effective_user.first_name
-            
-            # Ajouter l'utilisateur à la base de données
             await self.db_manager.add_user(user_id)
             
-            # Message de bienvenue
+            # Envoyer la vidéo d'introduction
+            await context.bot.send_video(
+                chat_id=user_id,
+                video=MEDIA_RESOURCES["intro_video"],
+                caption="🎮 Découvrez notre méthode révolutionnaire ! 🎰"
+            )
+            
+            # Message principal
+            message = f"""🎯 BONJOUR ❗️
+
+Je suis un programmeur Africain et je travaille avec des Russes, je connais la combine pour retirer l'argent des jeux casinos.
+
+✅ 1800 personnes ont déjà gagné avec moi. Et je peux vous garantir en toute confiance que vous gagnerez.
+
+💫 Vous pouvez gagner de l'argent sans rien faire, car j'ai déjà fait tout le programme pour vous.
+
+🔥 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y')}"""
+
+            await update.message.reply_photo(
+                photo=MEDIA_RESOURCES["main_image"],
+                caption=message,
+                reply_markup=KeyboardManager.create_main_keyboard()
+            )
+            
+            # Image du bas
+            await context.bot.send_photo(
+                chat_id=user_id,
+                photo=MEDIA_RESOURCES["bottom_image"],
+                caption="🏆 Rejoignez les gagnants dès aujourd'hui !"
+            )
+            
+            # Démarrer les diffusions automatiques
+            await self.start(context)
+            
+        except Exception as e:
+            logger.error(f"Erreur dans start_command pour {user_id}: {str(e)}")
+
+    async def start(self, context: ContextTypes.DEFAULT_TYPE):
+        """Démarre toutes les tâches de diffusion"""
+        self.running = True
+        asyncio.create_task(self.signal_broadcaster.broadcast(context))
+        asyncio.create_task(self.marathon_broadcaster.broadcast(context))
+        asyncio.create_task(self.promo_broadcaster.broadcast(context))
+        asyncio.create_task(self.invitation_broadcaster.broadcast(context))
+
+    def stop(self):
+        """Arrête toutes les tâches de diffusion"""
+        self.running = False
+        self.signal_broadcaster.running = False
+        self.marathon_broadcaster.running = False
+        self.promo_broadcaster.running = False
+        self.invitation_broadcaster.running = False
+
+    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+        await self.start(context)
+
+    async def handle_button(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        await query.answer()
+        chat_id = update.effective_chat.id
+        
+        try:
+            if query.data == "casino_withdrawal":
+                await self._handle_withdrawal(context, chat_id)
+            elif query.data == "info_bots":
+                await self._handle_info(context, chat_id)
+                
+        except Exception as e:
+            logger.error(f"Erreur bouton {chat_id}: {e}")
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="Une erreur est survenue. Réessayez."
+            )
+
+    async def _handle_withdrawal(self, context, chat_id):
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="""🎰 PREUVES DE PAIEMENT RÉCENTES 🎰
+
+💎 Ces retraits ont été effectués dans les dernières 24 heures
+✨ Nos utilisateurs gagnent en moyenne 50.000 FCFA par jour
+⚡️ Méthode 100% automatisée et garantie
+🔒 Aucun risque de perte
+
+👇 Voici les preuves en images 👇"""
+        )
+        media_group = [InputMediaPhoto(media=url) for url in MEDIA_RESOURCES["payment_proofs"]]
+        await context.bot.send_media_group(chat_id=chat_id, media=media_group)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="🌟 Prêt à commencer votre succès ?",
+            reply_markup=KeyboardManager.create_program_button()
+        )
+
+    async def _handle_info(self, context, chat_id):
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="""🤖 COMMENT LE HACK FONCTIONNE 🤖
+
+✅ Intelligence artificielle avancée
+🎯 Taux de réussite de 98.7%
+💫 Mise à jour quotidienne des algorithmes
+⚡️ Plus de 1800 utilisateurs satisfaits
+
+👇 Découvrez notre système en images 👇"""
+        )
+        media_group = [InputMediaPhoto(media=url) for url in MEDIA_RESOURCES["info_images"]]
+        await context.bot.send_media_group(chat_id=chat_id, media=media_group)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="🚀 Prêt à révolutionner vos gains ?",
+            reply_markup=KeyboardManager.create_program_button()
+        )
+
+    async def broadcast_to_users(self, context: ContextTypes.DEFAULT_TYPE, update: Update):
+        """Diffuse le message à tous les utilisateurs."""
+        user_ids = await self.db_manager.get_all_users()
+        count = 0
+        sem = asyncio.Semaphore(30)
+
+        async def send_to_user(user_id):
+            nonlocal count
+            async with sem:
+                try:
+                    if update.message.text:
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=update.message.text
+                        )
+                    elif update.message.photo:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=update.message.photo[-1].file_id,
+                            caption=update.message.caption
+                        )
+                    elif update.message.video:
+                        await context.bot.send_video(
+                            chat_id=user_id,
+                            video=update.message.video.file_id,
+                            caption=update.message.caption
+                        )
+                    elif update.message.document:
+                        await context.bot.send_document(
+                            chat_id=user_id,
+                            document=update.message.document.file_id,
+                            caption=update.message.caption
+                        )
+                    count += 1
+                    await asyncio.sleep(0.1)
+                except Exception as e:
+                    logger.error(f"Erreur d'envoi à {user_id}: {e}")
+
+        tasks = [send_to_user(user_id) for user_id in user_ids]
+        await asyncio.gather(*tasks)
+        
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text=f"✅ Message envoyé à {count} utilisateurs."
+        )
+
+    async def handle_admin_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_user.id != ADMIN_ID:
+            return
+        await self.broadcast_to_users(context, update)
+
+def keep_alive():
+    def run():
+        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    thread = threading.Thread(target=run)
+    thread.start()
+
+async def main():
+    try:
+        # Initialisation de la base de données
+        db_manager = DatabaseManager()
+        await db_manager.init_db()
+        
+        # Initialisation du gestionnaire de bot
+        bot_handler = BotHandler(db_manager)
+        
+        # Configuration de l'application Telegram
+        application = Application.builder().token(TOKEN).build()
+        
+        # IMPORTANT: Enregistrer le gestionnaire de messages
+        # Cette ligne est cruciale pour que la fonctionnalité de réponse par défaut fonctionne
+        bot_handler.register_handlers(application)
+        
+        # Handler pour la commande start
+        application.add_handler(CommandHandler("start", bot_handler.start_command))
+        
+        # Handler pour les boutons
+        application.add_handler(CallbackQueryHandler(bot_handler.handle_button))
+        
+        # Handler pour tous les messages de l'admin
+        application.add_handler(MessageHandler(
+            filters.ALL & filters.Chat(ADMIN_ID),
+            bot_handler.handle_admin_message
+        ))
+        
+        # Démarrer le serveur web
+        keep_alive()
+        
+        # Démarrer le bot
+        logger.info("Bot démarré!")
+        await application.run_polling()
+        
+    except Exception as e:
+        logger.critical(f"Erreur fatale: {e}")
+        raise
+
+if __name__ == "__main__":
+    # Import pour la classe abstraite ABC
+    from abc import ABC, abstractmethod
+    # Lancement du programme principal
+    asyncio.run(main())
+
+
+
+
+
+
+
+
+
+
+
+class PromoBroadcaster(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=1527)
+
+    def get_photo_url(self):
+        return "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
+
+    async def get_message(self, user_id=None, context=None):
+        first_name = "Ami"
+        if context and user_id:
+            try:
+                chat = await context.bot.get_chat(user_id)
+                first_name = chat.first_name if chat.first_name else "Ami"
+            except:
+                pass
+
+        return (
+            f"👋 Bonjour {first_name} !\n\n"
+            "Vous avez besoin d'argent? Écrivez-moi @BILLGATESHACKe pour comprendre le programme.\n\n"
+            "Dépêchez-vous !!! Les places sont limitées !\n\n"
+            "@BILLGATESHACK\n\n"
+            "@BILLGATESHACK\n\n"
+            "@BILLGATESHACK"
+        )
+
+class InvitationBroadcaster(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=1805)
+
+    def get_photo_url(self):
+        return "https://i.postimg.cc/yxn4FPdm/bandicam-2025-02-13-17-35-47-978.jpg"
+
+    async def get_message(self, user_id=None, context=None):
+        first_name = "Ami"
+        if context and user_id:
+            try:
+                chat = await context.bot.get_chat(user_id)
+                first_name = chat.first_name if chat.first_name else "Ami"
+            except:
+                pass
+
+        return (
+            f"👋 Bonjour {first_name} !\n\n"
+            "💰 **Avez-vous gagné de l'argent aujourd'hui ?** 💭\n\n"
+            "❌ Si la réponse est non, qu'attendez-vous ? 🤔\n\n"
+            "🎯 Un signe particulier ? \n\n"
+            "💵 Le voici $ 💫\n\n"
+            "👨‍🏫 Je suis prêt à accueillir deux nouveaux élèves et à les amener à des résultats dès aujourd'hui !\n\n"
+            "@BILLGATESHACK"
+        )
+
+class BotHandler:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+        self.signal_broadcaster = SignalBroadcaster(db_manager)
+        self.marathon_broadcaster = MarathonBroadcaster(db_manager)
+        self.promo_broadcaster = PromoBroadcaster(db_manager)
+        self.invitation_broadcaster = InvitationBroadcaster(db_manager)
+        self.running = True
+
+
+
+
+    async def handle_message(self, update, context):
+        """Gestionnaire pour tous les messages texte"""
+        user_id = update.effective_user.id
+        
+        message = (
+            "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
+            "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
+        )
+        
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=message,
+                parse_mode='Markdown'
+            )
+        except Exception as e:
+            logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
+
+    def register_handlers(self, application):
+        """Enregistre les gestionnaires de messages"""
+        message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
+        application.add_handler(message_handler)
+
+
+
+
+    
+    async def start_command(self, update, context):
+        """Gestionnaire de la commande /start"""
+        user_id = update.effective_user.id
+        first_name = update.effective_user.first_name
+        
+        try:
+            await self.db_manager.add_user(user_id)
+            
             welcome_message = (
                 f"👋 Bonjour {first_name} !\n\n"
                 "🎉 Bienvenue dans notre bot de signaux Aviator!\n\n"
@@ -402,60 +771,46 @@ class BotHandler:
                 "🚀 Restez connecté pour ne manquer aucune opportunité !"
             )
             
-            # Message par défaut
-            default_message = (
-                "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
-                "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
-            )
-            
-            # Envoyer le message de bienvenue
             await context.bot.send_message(
                 chat_id=user_id,
                 text=welcome_message,
                 parse_mode='Markdown'
             )
             
-            # Attendre un peu avant d'envoyer le message par défaut
-            await asyncio.sleep(0.5)
-            
-            # Envoyer le message par défaut
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=default_message,
-                parse_mode='Markdown'
-            )
-            
-            # Démarrer les diffusions automatiques
             await self.start(context)
             
         except Exception as e:
-            logger.error(f"Erreur dans start_command: {str(e)}")
-
-    def setup_handlers(self, application):
-        """Configuration simplifiée des gestionnaires"""
-        # Gestionnaire spécifique pour /start
-        start_handler = CommandHandler("start", self.start_command)
-        application.add_handler(start_handler)
-        
-        # Gestionnaire pour les callbacks de boutons
-        button_handler = CallbackQueryHandler(self.handle_button)
-        application.add_handler(button_handler)
-        
-        # Gestionnaire pour TOUTES les autres interactions (attrape-tout)
-        fallback_handler = MessageHandler(filters.ALL & ~filters.COMMAND, self.respond_to_all)
-        application.add_handler(fallback_handler)
-        
-        # Gestionnaire de secours pour les commandes inconnues
-        unknown_command_handler = MessageHandler(filters.COMMAND, self.respond_to_all)
-        application.add_handler(unknown_command_handler)
-        
-        return application
+            logger.error(f"Erreur dans start_command pour {user_id}: {str(e)}")
 
     async def start(self, context: ContextTypes.DEFAULT_TYPE):
         """Démarre toutes les tâches de diffusion"""
         self.running = True
         asyncio.create_task(self.signal_broadcaster.broadcast(context))
-        asyncio.create_task(self.marathon_broadcaster.broadcast
+        asyncio.create_task(self.marathon_broadcaster.broadcast(context))
+        asyncio.create_task(self.promo_broadcaster.broadcast(context))
+        asyncio.create_task(self.invitation_broadcaster.broadcast(context))
+
+    def stop(self):
+        """Arrête toutes les tâches de diffusion"""
+        self.running = False
+        self.signal_broadcaster.running = False
+        self.marathon_broadcaster.running = False
+        self.promo_broadcaster.running = False
+        self.invitation_broadcaster.running = False
+
+    # Méthodes de compatibilité
+    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
+        await self.start(context)
+
+    async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
+        pass
+
+    async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
+        pass
+
+
+
+
 
 
 
