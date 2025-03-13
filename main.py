@@ -308,7 +308,7 @@ class BotHandler:
         self.running = True
 
     # Méthode simplifiée pour répondre à tous les messages et toutes les commandes
-    async def respond_to_all(self, update, context):
+    async def handle_button(self, update, context):
         """Répond à tous les messages et commandes avec le message par défaut"""
         try:
             user_id = update.effective_user.id
