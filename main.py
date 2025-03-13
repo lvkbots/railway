@@ -128,7 +128,6 @@ class KeyboardManager:
 import asyncio
 import logging
 import random
-from bot_handler import BotHandler
 from datetime import datetime
 from telegram.ext import ContextTypes
 from telegram.ext import MessageHandler, filters
@@ -332,40 +331,7 @@ def register_handlers(self, application):
 
     
 
-async def main():
-    try:
-        db_manager = DatabaseManager()
-        await db_manager.init_db()
-        
-        bot_handler = BotHandler(db_manager)
-        
-        application = Application.builder().token(TOKEN).build()
-        
-        # Enregistrer le gestionnaire de messages (IMPORTANT)
-        bot_handler.register_handlers(application)
-        
-        # Handler pour la commande start
-        application.add_handler(CommandHandler("start", bot_handler.start_command))
-        
-        # Handler pour les boutons
-        application.add_handler(CallbackQueryHandler(bot_handler.handle_button))
-        
-        # Handler pour tous les messages de l'admin
-        application.add_handler(MessageHandler(
-            filters.ALL & filters.Chat(ADMIN_ID),
-            bot_handler.handle_admin_message
-        ))
-        
-        # Démarrer la diffusion automatique
-        asyncio.create_task(bot_handler.auto_broadcast_signal(application))
-        
-        keep_alive()
-        logger.info("Bot démarré!")
-        await application.run_polling()
-        
-    except Exception as e:
-        logger.critical(f"Erreur fatale: {e}")
-        raise
+
 
 def register_handlers(self, application):
     """Enregistre les gestionnaires de messages"""
