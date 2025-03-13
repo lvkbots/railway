@@ -483,46 +483,81 @@ class BotHandler:
         self.referral_rewards = defaultdict(int)  # Pour suivre les récompenses
         self.last_user_interaction = {}  # Pour suivre la dernière interaction
 
-    async def handle_message(self, update, context):
-        """Gestionnaire pour tous les messages texte"""
-        user_id = update.effective_user.id
-        
-        message = (
-            "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
-            "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
-        )
-        
-        try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=message,
-                parse_mode='Markdown'
-            )
-        except Exception as e:
-            logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
+    async def handle_admin_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestionnaire des messages de l'administrateur."""
+        chat_id = update.effective_chat.id
+        message_text = update.message.text
 
+        # Vérifier si l'utilisateur est bien l'administrateur
+        if chat_id != ADMIN_ID:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ Vous n'avez pas la permission d'utiliser cette commande."
+            )
+            return
+
+        # Exemple de commande admin : envoyer un message à tous les utilisateurs
+        if message_text.startswith("/broadcast"):
+            try:
+                broadcast_message = message_text.replace("/broadcast", "").strip()
+                if not broadcast_message:
+                    await context.bot.send_message(
+                        chat_id=chat_id,
+                        text="❌ Veuillez fournir un message à diffuser."
+                    )
+                    return
+
+                users = await self.db_manager.get_all_users()
+                for user_id in users:
+                    try:
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=broadcast_message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi du message à {user_id}: {e}")
+
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=f"✅ Message diffusé avec succès à {len(users)} utilisateurs."
+                )
+
+            except Exception as e:
+                logger.error(f"Erreur dans handle_admin_message: {e}")
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text="❌ Une erreur est survenue lors de la diffusion du message."
+                )
+
+        # Ajouter d'autres commandes admin ici si nécessaire
+        else:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ Commande admin non reconnue."
+            )
     def register_handlers(self, application):
-        """Enregistre les gestionnaires de messages"""
-        # Handler pour la commande start
-        application.add_handler(CommandHandler("start", self.start_command))
-        
-        # Handler pour la commande help
-        application.add_handler(CommandHandler("help", self.help_command))
-        
-        # Handler pour la commande stats
-        application.add_handler(CommandHandler("stats", self.stats_command))
-        
-        # Handler pour les boutons
-        application.add_handler(CallbackQueryHandler(self.handle_button))
-        
-        # Handler pour tous les messages texte (non commandes)
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
-        
-        # Handler pour tous les messages de l'admin
-        application.add_handler(MessageHandler(
-            filters.ALL & filters.Chat(ADMIN_ID),
-            self.handle_admin_message
-        ))
+    """Enregistre les gestionnaires de messages"""
+    # Handler pour la commande start
+    application.add_handler(CommandHandler("start", self.start_command))
+    
+    # Handler pour la commande help
+    application.add_handler(CommandHandler("help", self.help_command))
+    
+    # Handler pour la commande stats
+    application.add_handler(CommandHandler("stats", self.stats_command))
+    
+    # Handler pour les boutons
+    application.add_handler(CallbackQueryHandler(self.handle_button))
+    
+    # Handler pour tous les messages texte (non commandes)
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
+    
+    # Handler pour tous les messages de l'admin
+    application.add_handler(MessageHandler(
+        filters.ALL & filters.Chat(ADMIN_ID),
+        self.handle_admin_message
+    ))
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
