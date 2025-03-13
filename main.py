@@ -275,10 +275,10 @@ class PromoBroadcaster(MessageBroadcaster):
 class InvitationBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=1805)
-
+    
     def get_photo_url(self):
         return "https://i.postimg.cc/yxn4FPdm/bandicam-2025-02-13-17-35-47-978.jpg"
-
+    
     async def get_message(self, user_id=None, context=None):
         first_name = "Ami"
         if context and user_id:
@@ -287,7 +287,6 @@ class InvitationBroadcaster(MessageBroadcaster):
                 first_name = chat.first_name if chat.first_name else "Ami"
             except:
                 pass
-
         return (
             f"👋 Bonjour {first_name} !\n\n"
             "💰 **Avez-vous gagné de l'argent aujourd'hui ?** 💭\n\n"
@@ -306,27 +305,22 @@ class BotHandler:
         self.promo_broadcaster = PromoBroadcaster(db_manager)
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
-
-
-
-
+    
     async def handle_message(self, update, context):
-    """Gestionnaire pour tous les messages texte"""
-    user_id = update.effective_user.id
-    
-    message = (
-        "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
-        "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
-    )
-    
-    try:
-        await context.bot.send_message(
-            chat_id=user_id,
-            text=message,
-            parse_mode='Markdown'
+        """Gestionnaire pour tous les messages texte"""
+        user_id = update.effective_user.id
+        message = (
+            "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
+            "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
         )
-    except Exception as e:
-        logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=message,
+                parse_mode='Markdown'
+            )
+        except Exception as e:
+            logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
 
 
 def register_handlers(self, application):
