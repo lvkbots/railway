@@ -275,10 +275,10 @@ class PromoBroadcaster(MessageBroadcaster):
 class InvitationBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=1805)
-    
+
     def get_photo_url(self):
         return "https://i.postimg.cc/yxn4FPdm/bandicam-2025-02-13-17-35-47-978.jpg"
-    
+
     async def get_message(self, user_id=None, context=None):
         first_name = "Ami"
         if context and user_id:
@@ -287,6 +287,7 @@ class InvitationBroadcaster(MessageBroadcaster):
                 first_name = chat.first_name if chat.first_name else "Ami"
             except:
                 pass
+
         return (
             f"👋 Bonjour {first_name} !\n\n"
             "💰 **Avez-vous gagné de l'argent aujourd'hui ?** 💭\n\n"
@@ -305,7 +306,10 @@ class BotHandler:
         self.promo_broadcaster = PromoBroadcaster(db_manager)
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
-    
+
+
+
+
     async def handle_message(self, update, context):
         """Gestionnaire pour tous les messages texte"""
         user_id = update.effective_user.id
@@ -322,73 +326,66 @@ class BotHandler:
         except Exception as e:
             logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
 
+    def register_handlers(self, application):
+        """Enregistre les gestionnaires de messages"""
+        message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
+        application.add_handler(message_handler)
 
-def register_handlers(self, application):
-    """Enregistre les gestionnaires de messages"""
-    message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
-    application.add_handler(message_handler)
+
 
 
     
-
-
-
-def register_handlers(self, application):
-    """Enregistre les gestionnaires de messages"""
-    message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
-    application.add_handler(message_handler)
-
-async def start_command(self, update, context):
-    """Gestionnaire de la commande /start"""
-    user_id = update.effective_user.id
-    first_name = update.effective_user.first_name
-    
-    try:
-        await self.db_manager.add_user(user_id)
+    async def start_command(self, update, context):
+        """Gestionnaire de la commande /start"""
+        user_id = update.effective_user.id
+        first_name = update.effective_user.first_name
         
-        welcome_message = (
-            f"👋 Bonjour {first_name} !\n\n"
-            "🎉 Bienvenue dans notre bot de signaux Aviator!\n\n"
-            "💫 Vous recevrez automatiquement nos signaux exclusifs.\n\n"
-            "🚀 Restez connecté pour ne manquer aucune opportunité !"
-        )
-        
-        await context.bot.send_message(
-            chat_id=user_id,
-            text=welcome_message,
-            parse_mode='Markdown'
-        )
-        
+        try:
+            await self.db_manager.add_user(user_id)
+            
+            welcome_message = (
+                f"👋 Bonjour {first_name} !\n\n"
+                "🎉 Bienvenue dans notre bot de signaux Aviator!\n\n"
+                "💫 Vous recevrez automatiquement nos signaux exclusifs.\n\n"
+                "🚀 Restez connecté pour ne manquer aucune opportunité !"
+            )
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=welcome_message,
+                parse_mode='Markdown'
+            )
+            
+            await self.start(context)
+            
+        except Exception as e:
+            logger.error(f"Erreur dans start_command pour {user_id}: {str(e)}")
+
+    async def start(self, context: ContextTypes.DEFAULT_TYPE):
+        """Démarre toutes les tâches de diffusion"""
+        self.running = True
+        asyncio.create_task(self.signal_broadcaster.broadcast(context))
+        asyncio.create_task(self.marathon_broadcaster.broadcast(context))
+        asyncio.create_task(self.promo_broadcaster.broadcast(context))
+        asyncio.create_task(self.invitation_broadcaster.broadcast(context))
+
+    def stop(self):
+        """Arrête toutes les tâches de diffusion"""
+        self.running = False
+        self.signal_broadcaster.running = False
+        self.marathon_broadcaster.running = False
+        self.promo_broadcaster.running = False
+        self.invitation_broadcaster.running = False
+
+    # Méthodes de compatibilité
+    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
         await self.start(context)
-        
-    except Exception as e:
-        logger.error(f"Erreur dans start_command pour {user_id}: {str(e)}")
 
-async def start(self, context: ContextTypes.DEFAULT_TYPE):
-    """Démarre toutes les tâches de diffusion"""
-    self.running = True
-    asyncio.create_task(self.signal_broadcaster.broadcast(context))
-    asyncio.create_task(self.marathon_broadcaster.broadcast(context))
-    asyncio.create_task(self.promo_broadcaster.broadcast(context))
-    asyncio.create_task(self.invitation_broadcaster.broadcast(context))
+    async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
+        pass
 
-def stop(self):
-    """Arrête toutes les tâches de diffusion"""
-    self.running = False
-    self.signal_broadcaster.running = False
-    self.marathon_broadcaster.running = False
-    self.promo_broadcaster.running = False
-    self.invitation_broadcaster.running = False
-
-# Méthodes de compatibilité
-async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
-    await self.start(context)
-
-async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
-    pass
-
-async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
-    pass
+    async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
+        pass
 
 
 
