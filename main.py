@@ -326,7 +326,7 @@ class BotHandler:
     except Exception as e:
         logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
 
-  def register_handlers(self, application):
+def register_handlers(self, application):
     """Enregistre les gestionnaires de messages"""
     message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
     application.add_handler(message_handler)
