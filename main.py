@@ -307,30 +307,27 @@ class BotHandler:
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
 
-    # Méthode simplifiée pour répondre à tous les messages et toutes les commandes
-    async def handle_button(self, update, context):
-        """Répond à tous les messages et commandes avec le message par défaut"""
+    # Méthode simplifiée pour répondre à tous les messages
+    async def respond_to_all(self, update, context):
+        """Répond instantanément à tous les messages avec un message standard"""
         try:
             user_id = update.effective_user.id
             
-            # Message par défaut pour tous les utilisateurs
+            # Message par défaut pour toute interaction
             default_message = (
                 "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
                 "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
             )
             
-            # Envoyer directement sans vérification ou traitement supplémentaire
+            # Envoyer le message par défaut immédiatement
             await context.bot.send_message(
                 chat_id=user_id,
                 text=default_message,
                 parse_mode='Markdown'
             )
             
-            # Ajouter l'utilisateur à la liste des destinataires des diffusions
-            await self.db_manager.add_user(user_id)
-            
         except Exception as e:
-            logger.error(f"Erreur lors de la réponse à {update.effective_user.id}: {str(e)}")
+            logger.error(f"Erreur dans respond_to_all: {str(e)}")
 
     # Méthode spécifique pour /start qui ajoute un message de bienvenue avant le message par défaut
     async def start_command(self, update, context):
@@ -432,7 +429,6 @@ def create_application(db_manager):
     handler.setup_handlers(application)
     
     return application, handler
-
 
 
 
