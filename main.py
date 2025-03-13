@@ -19,8 +19,6 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-# Ajout de l'import manquant
-from abc import ABC, abstractmethod
 
 # Configuration du logging
 logging.basicConfig(
@@ -153,6 +151,8 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
+# Ajout de l'import manquant
+from abc import ABC, abstractmethod
 
 # Configuration du logging
 logging.basicConfig(
