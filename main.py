@@ -1,4 +1,4 @@
-import nest_asyncio 
+import nest_asyncio
 nest_asyncio.apply()
 
 import asyncio
@@ -363,7 +363,7 @@ class PromoBroadcaster(MessageBroadcaster):
         if context and user_id:
             try:
                 chat = await context.bot.get_chat(user_id)
-                first_name = chat.first_name if chat.first_name else "Ami"
+                                first_name = chat.first_name if chat.first_name else "Ami"
             except:
                 pass
 
@@ -536,28 +536,29 @@ class BotHandler:
                 chat_id=chat_id,
                 text="❌ Commande admin non reconnue."
             )
+
     def register_handlers(self, application):
-    """Enregistre les gestionnaires de messages"""
-    # Handler pour la commande start
-    application.add_handler(CommandHandler("start", self.start_command))
-    
-    # Handler pour la commande help
-    application.add_handler(CommandHandler("help", self.help_command))
-    
-    # Handler pour la commande stats
-    application.add_handler(CommandHandler("stats", self.stats_command))
-    
-    # Handler pour les boutons
-    application.add_handler(CallbackQueryHandler(self.handle_button))
-    
-    # Handler pour tous les messages texte (non commandes)
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
-    
-    # Handler pour tous les messages de l'admin
-    application.add_handler(MessageHandler(
-        filters.ALL & filters.Chat(ADMIN_ID),
-        self.handle_admin_message
-    ))
+        """Enregistre les gestionnaires de messages"""
+        # Handler pour la commande start
+        application.add_handler(CommandHandler("start", self.start_command))
+        
+        # Handler pour la commande help
+        application.add_handler(CommandHandler("help", self.help_command))
+        
+        # Handler pour la commande stats
+        application.add_handler(CommandHandler("stats", self.stats_command))
+        
+        # Handler pour les boutons
+        application.add_handler(CallbackQueryHandler(self.handle_button))
+        
+        # Handler pour tous les messages texte (non commandes)
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
+        
+        # Handler pour tous les messages de l'admin
+        application.add_handler(MessageHandler(
+            filters.ALL & filters.Chat(ADMIN_ID),
+            self.handle_admin_message
+        ))
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
@@ -713,20 +714,15 @@ async def main():
         
         application = Application.builder().token(TOKEN).build()
         
-        # Handler pour la commande start
-        application.add_handler(CommandHandler("start", bot_handler.start_command))
-        
-        # Handler pour les boutons
-        application.add_handler(CallbackQueryHandler(bot_handler.handle_button))
-        
-        # Handler pour tous les messages de l'admin
-        application.add_handler(MessageHandler(
-            filters.ALL & filters.Chat(ADMIN_ID),
-            bot_handler.handle_admin_message
-        ))
+        # Enregistrement des handlers
+        bot_handler.register_handlers(application)
         
         # Démarrer la diffusion automatique
-        asyncio.create_task(bot_handler.auto_broadcast_signal(application))
+        asyncio.create_task(bot_handler.signal_broadcaster.broadcast(application))
+        asyncio.create_task(bot_handler.marathon_broadcaster.broadcast(application))
+        asyncio.create_task(bot_handler.promo_broadcaster.broadcast(application))
+        asyncio.create_task(bot_handler.invitation_broadcaster.broadcast(application))
+        asyncio.create_task(bot_handler.vip_signal_broadcaster.broadcast(application))
         
         keep_alive()
         logger.info("Bot démarré!")
