@@ -130,7 +130,7 @@ import logging
 import random
 from datetime import datetime
 from telegram.ext import ContextTypes
-from telegram.ext import MessageHandler, filters
+from telegram.ext import MessageHandler, filters, CommandHandler
 from abc import ABC, abstractmethod
 
 
@@ -306,29 +306,54 @@ class BotHandler:
         self.promo_broadcaster = PromoBroadcaster(db_manager)
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
+        self.default_message = (
+            "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
+            "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
+        )
 
     async def handle_message(self, update, context):
         """Gestionnaire pour tous les messages texte"""
         user_id = update.effective_user.id
         
-        message = (
-            "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
-            "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
-        )
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=self.default_message,
+                parse_mode='Markdown'
+            )
+            # Ajouter l'utilisateur à la base de données pour les diffusions
+            await self.db_manager.add_user(user_id)
+        except Exception as e:
+            logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
+
+    async def handle_command(self, update, context):
+        """Gestionnaire pour toutes les commandes"""
+        user_id = update.effective_user.id
         
         try:
             await context.bot.send_message(
                 chat_id=user_id,
-                text=message,
+                text=self.default_message,
                 parse_mode='Markdown'
             )
+            # Ajouter l'utilisateur à la base de données pour les diffusions
+            await self.db_manager.add_user(user_id)
         except Exception as e:
-            logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
+            logger.error(f"Erreur dans handle_command pour {user_id}: {str(e)}")
 
     def register_handlers(self, application):
         """Enregistre les gestionnaires de messages"""
+        # Gérer tous les messages texte
         message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
         application.add_handler(message_handler)
+        
+        # Gérer la commande /start spécifiquement 
+        start_handler = CommandHandler("start", self.start_command)
+        application.add_handler(start_handler)
+        
+        # Gérer toutes les autres commandes
+        command_handler = MessageHandler(filters.COMMAND, self.handle_command)
+        application.add_handler(command_handler)
     
     async def start_command(self, update, context):
         """Gestionnaire de la commande /start"""
@@ -348,6 +373,14 @@ class BotHandler:
             await context.bot.send_message(
                 chat_id=user_id,
                 text=welcome_message,
+                parse_mode='Markdown'
+            )
+            
+            # Envoyer également le message par défaut
+            await asyncio.sleep(1)
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=self.default_message,
                 parse_mode='Markdown'
             )
             
@@ -381,7 +414,6 @@ class BotHandler:
 
     async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
         pass
-
 
 
 
