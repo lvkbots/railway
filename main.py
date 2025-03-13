@@ -129,7 +129,7 @@ import asyncio
 import logging
 import random
 from datetime import datetime
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, Application
 from telegram.ext import MessageHandler, filters, CommandHandler
 from abc import ABC, abstractmethod
 
@@ -265,7 +265,7 @@ class PromoBroadcaster(MessageBroadcaster):
 
         return (
             f"👋 Bonjour {first_name} !\n\n"
-            "Vous avez besoin d'argent? Écrivez-moi @BILLGATESHACKe pour comprendre le programme.\n\n"
+            "Vous avez besoin d'argent? Écrivez-moi @BILLGATESHACK pour comprendre le programme.\n\n"
             "Dépêchez-vous !!! Les places sont limitées !\n\n"
             "@BILLGATESHACK\n\n"
             "@BILLGATESHACK\n\n"
@@ -306,63 +306,43 @@ class BotHandler:
         self.promo_broadcaster = PromoBroadcaster(db_manager)
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
-        self.default_message = (
-            "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
-            "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
-        )
 
-    async def handle_message(self, update, context):
-        """Gestionnaire pour tous les messages texte"""
-        user_id = update.effective_user.id
-        
+    # Méthode simplifiée pour répondre à tous les messages et toutes les commandes
+    async def respond_to_all(self, update, context):
+        """Répond à tous les messages et commandes avec le message par défaut"""
         try:
+            user_id = update.effective_user.id
+            
+            # Message par défaut pour tous les utilisateurs
+            default_message = (
+                "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
+                "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
+            )
+            
+            # Envoyer directement sans vérification ou traitement supplémentaire
             await context.bot.send_message(
                 chat_id=user_id,
-                text=self.default_message,
+                text=default_message,
                 parse_mode='Markdown'
             )
-            # Ajouter l'utilisateur à la base de données pour les diffusions
-            await self.db_manager.add_user(user_id)
-        except Exception as e:
-            logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
-
-    async def handle_command(self, update, context):
-        """Gestionnaire pour toutes les commandes"""
-        user_id = update.effective_user.id
-        
-        try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=self.default_message,
-                parse_mode='Markdown'
-            )
-            # Ajouter l'utilisateur à la base de données pour les diffusions
-            await self.db_manager.add_user(user_id)
-        except Exception as e:
-            logger.error(f"Erreur dans handle_command pour {user_id}: {str(e)}")
-
-    def register_handlers(self, application):
-        """Enregistre les gestionnaires de messages"""
-        # Gérer tous les messages texte
-        message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
-        application.add_handler(message_handler)
-        
-        # Gérer la commande /start spécifiquement 
-        start_handler = CommandHandler("start", self.start_command)
-        application.add_handler(start_handler)
-        
-        # Gérer toutes les autres commandes
-        command_handler = MessageHandler(filters.COMMAND, self.handle_command)
-        application.add_handler(command_handler)
-    
-    async def start_command(self, update, context):
-        """Gestionnaire de la commande /start"""
-        user_id = update.effective_user.id
-        first_name = update.effective_user.first_name
-        
-        try:
+            
+            # Ajouter l'utilisateur à la liste des destinataires des diffusions
             await self.db_manager.add_user(user_id)
             
+        except Exception as e:
+            logger.error(f"Erreur lors de la réponse à {update.effective_user.id}: {str(e)}")
+
+    # Méthode spécifique pour /start qui ajoute un message de bienvenue avant le message par défaut
+    async def start_command(self, update, context):
+        """Gestionnaire spécifique pour la commande /start"""
+        try:
+            user_id = update.effective_user.id
+            first_name = update.effective_user.first_name
+            
+            # Ajouter l'utilisateur à la base de données
+            await self.db_manager.add_user(user_id)
+            
+            # Message de bienvenue
             welcome_message = (
                 f"👋 Bonjour {first_name} !\n\n"
                 "🎉 Bienvenue dans notre bot de signaux Aviator!\n\n"
@@ -370,24 +350,50 @@ class BotHandler:
                 "🚀 Restez connecté pour ne manquer aucune opportunité !"
             )
             
+            # Message par défaut
+            default_message = (
+                "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
+                "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
+            )
+            
+            # Envoyer le message de bienvenue
             await context.bot.send_message(
                 chat_id=user_id,
                 text=welcome_message,
                 parse_mode='Markdown'
             )
             
-            # Envoyer également le message par défaut
-            await asyncio.sleep(1)
+            # Attendre un peu avant d'envoyer le message par défaut
+            await asyncio.sleep(0.5)
+            
+            # Envoyer le message par défaut
             await context.bot.send_message(
                 chat_id=user_id,
-                text=self.default_message,
+                text=default_message,
                 parse_mode='Markdown'
             )
             
+            # Démarrer les diffusions automatiques
             await self.start(context)
             
         except Exception as e:
-            logger.error(f"Erreur dans start_command pour {user_id}: {str(e)}")
+            logger.error(f"Erreur dans start_command: {str(e)}")
+
+    def setup_handlers(self, application):
+        """Configuration simplifiée des gestionnaires"""
+        # Gestionnaire spécifique pour /start
+        start_handler = CommandHandler("start", self.start_command)
+        application.add_handler(start_handler)
+        
+        # Gestionnaire pour TOUTES les autres interactions (attrape-tout)
+        fallback_handler = MessageHandler(filters.ALL & ~filters.COMMAND, self.respond_to_all)
+        application.add_handler(fallback_handler)
+        
+        # Gestionnaire de secours pour les commandes inconnues
+        unknown_command_handler = MessageHandler(filters.COMMAND, self.respond_to_all)
+        application.add_handler(unknown_command_handler)
+        
+        return application
 
     async def start(self, context: ContextTypes.DEFAULT_TYPE):
         """Démarre toutes les tâches de diffusion"""
@@ -414,6 +420,18 @@ class BotHandler:
 
     async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
         pass
+
+
+# Exemple d'utilisation:
+def create_application(db_manager):
+    """Crée et configure l'application Telegram"""
+    application = Application.builder().token("YOUR_BOT_TOKEN").build()
+    
+    # Initialiser et configurer le gestionnaire de bot
+    handler = BotHandler(db_manager)
+    handler.setup_handlers(application)
+    
+    return application, handler
 
 
 
