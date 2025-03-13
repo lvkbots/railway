@@ -321,7 +321,7 @@ class BotHandler:
         except:
             pass  # Ignorer les erreurs pour garantir le fonctionnement
 
-def register_handlers(self, application):
+    def register_handlers(self, application):
     """Configure le bot pour répondre à tout type de message"""
     # Capture tous les types de messages possibles pour garantir une réponse
     application.add_handler(MessageHandler(filters.ALL, self.handle_message))
