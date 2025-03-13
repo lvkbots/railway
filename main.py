@@ -308,7 +308,32 @@ class BotHandler:
         self.running = True
 
 
+    async def handle_message(self, update, context):
+    """Gestionnaire pour tous les messages texte"""
+    user_id = update.effective_user.id
+    
+    message = (
+        "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n"
+        "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
+    )
+    
+    try:
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=message,
+            parse_mode='Markdown'
+        )
+    except Exception as e:
+        logger.error(f"Erreur dans handle_message pour {user_id}: {str(e)}")
 
+
+     def register_handlers(self, application):
+    """Enregistre les gestionnaires de messages"""
+    message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
+    application.add_handler(message_handler)
+
+
+    
 
     async def handle_message(self, update, context):
         """Gestionnaire pour tous les messages texte"""
