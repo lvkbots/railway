@@ -331,7 +331,7 @@ def register_handlers(self, application):
 
     
 
-    async def main():
+async def main():
     try:
         db_manager = DatabaseManager()
         await db_manager.init_db()
