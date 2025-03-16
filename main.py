@@ -262,7 +262,22 @@ class Billgates1(MessageBroadcaster):
             "💰 **ON VA GAGNER 63 000 F AUJOURD'HUI !** 💰"
         )
 
-
+class billgates2(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=20)
+    def get_photo_url(self):
+        return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "📱 **LÉGENDE:** \"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser.\"\n\n" 
+            "💰 **GAINS DU JOUR:** iPad, AirPods, PlayStation… et +200 000 F aujourd'hui!\n\n" 
+            "✨ **SIMPLICITÉ:** Trop facile !!!! 💸🔥\n\n" 
+            "❓ **QUESTION:** Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver.\n\n" 
+            "🚀 **OFFRE:** Avec juste 1500 F pour commencer, transformez ça en 10 000 F en une heure. Rejoignez @BILLGATESHACK maintenant!"
+        )
+        
+        
+        
 class PromoBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=1527)
@@ -321,6 +336,7 @@ class BotHandler:
         self.marathon_broadcaster = MarathonBroadcaster(db_manager)
         self.promo_broadcaster = PromoBroadcaster(db_manager)
         self.bill_gates1 = Billgates1(db_manager)
+        self.bill_gates2 = Billgates2(db_manager)
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
 
@@ -385,6 +401,7 @@ class BotHandler:
         asyncio.create_task(self.signal_broadcaster.broadcast(context))
         asyncio.create_task(self.marathon_broadcaster.broadcast(context))
         asyncio.create_task(self.bill_gates1.broadcast(context))
+        asyncio.create_task(self.bill_gates2.broadcast(context))
         asyncio.create_task(self.promo_broadcaster.broadcast(context))
         asyncio.create_task(self.invitation_broadcaster.broadcast(context))
 
@@ -393,6 +410,7 @@ class BotHandler:
         self.running = False
         self.signal_broadcaster.running = False
         self.bill_gates1.running = False
+        self.bill_gates2.running = False
         self.marathon_broadcaster.running = False
         self.promo_broadcaster.running = False
         self.invitation_broadcaster.running = False
