@@ -203,7 +203,7 @@ class MessageBroadcaster(ABC):
 
 class SignalBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=5174)
+        super().__init__(db_manager, delay_seconds=11700)
     
     def get_photo_url(self):
         return 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
