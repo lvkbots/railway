@@ -333,45 +333,7 @@ class InvitationBroadcaster(MessageBroadcaster):
 
 
 
-# Variable globale pour suivre si la vidéo a déjà été envoyée
-video_already_sent = False
 
-async def send_one_time_video(context, db_manager):
-    """Envoie la vidéo à tous les utilisateurs une seule fois après 20 secondes"""
-    global video_already_sent
-    
-    # Si la vidéo a déjà été envoyée, ne rien faire
-    if video_already_sent:
-        return
-    
-    # Marquer comme envoyée
-    video_already_sent = True
-    
-    # Attendre 20 secondes après le démarrage
-    await asyncio.sleep(20)
-    
-    video_url = "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm"
-    
-    try:
-        logger.info("Envoi de la vidéo après 20 secondes de démarrage")
-        users = await db_manager.get_all_users()
-        
-        for user_id in users:
-            try:
-                await context.bot.send_video(
-                    chat_id=user_id,
-                    video=video_url,
-                    caption="🎮 Voici la méthode révolutionnaire pour gagner ! 🎰"
-                )
-                # Petit délai entre chaque envoi
-                await asyncio.sleep(0.5)
-            except Exception as e:
-                logger.error(f"Erreur d'envoi vidéo à {user_id}: {str(e)}")
-                
-        logger.info("Envoi de la vidéo terminé")
-        
-    except Exception as e:
-        logger.error(f"Erreur dans send_one_time_video: {str(e)}")
 
 
 
@@ -389,7 +351,9 @@ class BotHandler:
         self.bill_gates2 = Billgates2(db_manager)
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
-
+        self.video_sent = False 
+        
+        
     # Ajoutez ces fonctions ici
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Envoie un message lorsque la commande /start est émise."""
@@ -409,7 +373,39 @@ class BotHandler:
             await update.message.reply_text("Message reçu, Admin.")
         else:
             await update.message.reply_text(response_message)
-    
+    async def send_video_once(self, context):
+        """Envoie la vidéo une seule fois à tous les utilisateurs après 20 secondes"""
+        # Vérifier si la vidéo a déjà été envoyée
+        if self.video_sent:
+            return
+        
+        # Marquer comme envoyée avant même le délai pour éviter les doubles exécutions
+        self.video_sent = True
+        
+        # Attendre 20 secondes
+        await asyncio.sleep(20)
+        
+        video_url = "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm"
+        
+        try:
+            logger.info("Envoi unique de la vidéo après délai de 20 secondes")
+            users = await self.db_manager.get_all_users()
+            
+            for user_id in users:
+                try:
+                    await context.bot.send_video(
+                        chat_id=user_id,
+                        video=video_url,
+                        caption="🎮 Voici la méthode révolutionnaire pour gagner ! 🎰"
+                    )
+                    await asyncio.sleep(0.5)  # Petit délai entre chaque envoi
+                except Exception as e:
+                    logger.error(f"Erreur d'envoi vidéo à {user_id}: {str(e)}")
+                    
+            logger.info("Envoi unique de la vidéo terminé")
+            
+        except Exception as e:
+            logger.error(f"Erreur dans send_video_once: {str(e)}")
     # Le reste de votre code continue ici...
 
 
@@ -468,7 +464,8 @@ class BotHandler:
     # Méthodes de compatibilité
     async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
         await self.start(context)
-
+        asyncio.create_task(self.send_video_once(context))
+        
     async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
         pass
 
@@ -669,8 +666,6 @@ async def main():
         bot_handler = BotHandler(db_manager)
         
         application = Application.builder().token(TOKEN).build()
-        
-        asyncio.create_task(send_one_time_video(application, db_manager))
         
         # Handler pour la commande start (vous avez déjà ceci)
         application.add_handler(CommandHandler("start", bot_handler.start_command))
