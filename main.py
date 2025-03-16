@@ -229,13 +229,13 @@ class SignalBroadcaster(MessageBroadcaster):
             f"🎯 Le coefficient pour ce tour est de **{coefficient}x**.\n\n"
             f"💸 Mise potentielle: **{mise} FCFA** → Gain: **{gain} FCFA** ! 💰\n"
             f"⚡️ Récupère le hack pour le **tour suivant** ! ⏱️\n\n"
-            f"⏰ **Heure** : {current_time}\n\n"
+            f"⏰ **Heure** : {current_time} 🌍 Afrique !\n\n"
             '💬 **Envoie "BOT" à @BILLGATESHACK** pour obtenir le bot gratuitement !'
         )
 
 class MarathonBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=20)
+        super().__init__(db_manager, delay_seconds=87156)
 
     def get_photo_url(self):
         return "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
@@ -253,9 +253,11 @@ class MarathonBroadcaster(MessageBroadcaster):
 
 class Billgates1(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=20)
+        super().__init__(db_manager, delay_seconds=62712)
+    
     def get_photo_url(self):
         return "https://i.postimg.cc/Kz573z4T/photo-2025-03-14-11-13-44.jpg"
+    
     async def get_message(self, user_id=None, context=None):
         return (
             "🔍 **SCHÉMA DÉVELOPPÉ POUR AVIATOR !!!** 🔍\n\n"
@@ -264,6 +266,42 @@ class Billgates1(MessageBroadcaster):
             "👥 **JE PRENDS 5 PERSONNES MAINTENANT !!** 👥\n\n"
             "💰 **ON VA GAGNER 63 000 F AUJOURD'HUI !** 💰"
         )
+    
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+                
+                for user_id in users:
+                    if not self.running:
+                        break
+                    
+                    message = await self.get_message(user_id, context)
+                    photo_url = self.get_photo_url()
+                    
+                    # Envoi du message comme caption de l'image en un seul message
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                    
+                    await asyncio.sleep(0.5)
+
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
+                
+                
 
 class Billgates2(MessageBroadcaster):
     def __init__(self, db_manager):
@@ -283,7 +321,7 @@ class Billgates2(MessageBroadcaster):
         
 class PromoBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=1527)
+        super().__init__(db_manager, delay_seconds=15027)
 
     def get_photo_url(self):
         return "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
@@ -386,7 +424,7 @@ class BotHandler:
         self.video_sent = True
         
         # Attendre 20 secondes
-        await asyncio.sleep(20)
+        await asyncio.sleep(30)
         
         video_url = "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm"
         
