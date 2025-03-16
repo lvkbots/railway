@@ -264,16 +264,16 @@ class Billgates1(MessageBroadcaster):
 
 class Billgates2(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=20)
+        super().__init__(db_manager, delay_seconds=25)
     def get_photo_url(self):
         return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
     async def get_message(self, user_id=None, context=None):
         return (
-            "📱 **LÉGENDE:** \"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser.\"\n\n" 
-            "💰 **GAINS DU JOUR:** iPad, AirPods, PlayStation… et +200 000 F aujourd'hui!\n\n" 
-            "✨ **SIMPLICITÉ:** Trop facile !!!! 💸🔥\n\n" 
-            "❓ **QUESTION:** Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver.\n\n" 
-            "🚀 **OFFRE:** Avec juste 1500 F pour commencer, transformez ça en 10 000 F en une heure. Rejoignez @BILLGATESHACK maintenant!"
+            "\"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser. "
+            "Regardez ça : iPad, AirPods, PlayStation… et tout cet argent que j'ai gagné aujourd'hui (+200 000 F) ! "
+            "Trop facile !!!! 💸🔥\n\n"
+            "Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver. "
+            "Avec juste 1500 F pour commencer, on transforme ça en 10 000 F en une heure. Rejoins-moi vite @BILLGATESHACK et on y va ensemble ! 🚀"
         )
         
         
