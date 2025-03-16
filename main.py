@@ -306,8 +306,10 @@ class Billgates1(MessageBroadcaster):
 class Billgates2(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=25956)
+    
     def get_photo_url(self):
         return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
+    
     async def get_message(self, user_id=None, context=None):
         return (
             "📱  \"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser.\"\n\n" 
@@ -316,6 +318,40 @@ class Billgates2(MessageBroadcaster):
             "❓ **QUESTION:** Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver.\n\n" 
             "🚀 **OFFRE:** Avec juste 1500 F pour commencer, transformez ça en 10 000 F en une heure. Rejoignez @BILLGATESHACK maintenant!"
         )
+    
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+                
+                for user_id in users:
+                    if not self.running:
+                        break
+                    
+                    message = await self.get_message(user_id, context)
+                    photo_url = self.get_photo_url()
+                    
+                    # Envoi du message comme caption de l'image en un seul message
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                    
+                    await asyncio.sleep(0.5)
+
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
         
         
         
@@ -369,6 +405,102 @@ class InvitationBroadcaster(MessageBroadcaster):
             "👨‍🏫 Je suis prêt à accueillir deux nouveaux élèves et à les amener à des résultats dès aujourd'hui !\n\n"
             "@BILLGATESHACK"
         )
+    
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+                
+                for user_id in users:
+                    if not self.running:
+                        break
+                    
+                    message = await self.get_message(user_id, context)
+                    photo_url = self.get_photo_url()
+                    
+                    # Envoi du message comme caption de l'image en un seul message
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                    
+                    await asyncio.sleep(0.5)
+
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
+                
+                
+                
+                
+
+
+
+
+
+
+class Billgates3(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=44200)  # Délai de 12 heures (43200 secondes)
+
+    def get_photo_url(self):
+        return "https://i.postimg.cc/k4CF58M9/photo-2025-03-15-17-38-19.jpg"
+
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "🔺 Les signaux GRATOS de la journée, ça démarre demain à 15h40.\n"
+            "🔺 Les signaux GRATOS du soir, c'est à 21h15.\n"
+            "On joue sur 1xCasino 👇🏼\n"
+            "🔺 https://casaff.top/L?tag=d_4168199m_79150c_&site=4168199&ad=79150&r=registration\n"
+            "(Le bot est intégré dans le code de cette page ! Faut ABSOLUMENT passer par ce lien !)\n"
+            "Allez-y et mettez au moins 900 F sur votre compte ! C'est comme ça que le bot va marcher.\n"
+            "Si tu sais pas comment gagner avec le bot, écris-moi \"START\" ici \n"
+            "👉 @BILLGATESHACK"
+        )
+    
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+                
+                for user_id in users:
+                    if not self.running:
+                        break
+                    
+                    message = await self.get_message(user_id, context)
+                    photo_url = self.get_photo_url()
+                    
+                    # Envoi du message comme caption de l'image en un seul message
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                    
+                    await asyncio.sleep(0.5)
+
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
 
 
 
@@ -376,6 +508,116 @@ class InvitationBroadcaster(MessageBroadcaster):
 
 
 
+
+
+
+class Billgates5(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=32400)  # Délai de 9 heures (32400 secondes)
+
+    def get_photo_url(self):
+        return "https://i.postimg.cc/7L30j63R/photo-2025-03-06-15-02-56.jpg"
+
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "Yo, les gars !💰 \n\n"
+            "J'ai une équipe de développeurs programmateurs balèzes avec moi. Ensemble, on a créé un bot Telegram spécial qui déchire dans Aviator, en prédisant les coefficients🚀\n\n"
+            "« Comment l'utiliser ? » Facile ! 😎 \n\n"
+            "Je te donne l'accès, tu demandes un coefficient pour jouer (si t'as assez de balance sur ton compte). \n\n"
+            "Le bot t'envoie le coefficient, et faut vite retirer ta mise avant que l'avion dans Aviator s'envole ! @BILLGATESHACK 💸"
+        )
+    
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+                
+                for user_id in users:
+                    if not self.running:
+                        break
+                    
+                    message = await self.get_message(user_id, context)
+                    photo_url = self.get_photo_url()
+                    
+                    # Envoi du message comme caption de l'image en un seul message
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                    
+                    await asyncio.sleep(0.5)
+
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
+
+
+
+
+
+
+
+
+
+class Billgates4(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=36000)  # Délai de 10 heures (36000 secondes)
+
+    def get_photo_url(self):
+        return "https://i.postimg.cc/6QJCHRvR/photo-2025-03-07-08-13-47.jpg"
+
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "Ici, les gars et les filles gagnent de l'argent grâce au bot et aux signaux. 💰🤖\n"
+            "Même les filles jouent et gagnent ! 🎰🔥\n"
+            "Et vous, les hommes, qu'attendez-vous ? 😏\n"
+            "Écris-moi et commençons à faire fortune ensemble ! 🚀💵\n"
+            "Write to me, we gonna blow up this casino @BILLGATESHACK 🤫💸"
+        )
+    
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+                
+                for user_id in users:
+                    if not self.running:
+                        break
+                    
+                    message = await self.get_message(user_id, context)
+                    photo_url = self.get_photo_url()
+                    
+                    # Envoi du message comme caption de l'image en un seul message
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                    
+                    await asyncio.sleep(0.5)
+
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
 
 
 
@@ -390,6 +632,9 @@ class BotHandler:
         self.promo_broadcaster = PromoBroadcaster(db_manager)
         self.bill_gates1 = Billgates1(db_manager)
         self.bill_gates2 = Billgates2(db_manager)
+        self.bill_gates3 = Billgates3(db_manager)
+        self.bill_gates4 = Billgates4(db_manager)
+        self.bill_gates5 = Billgates5(db_manager)
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
         self.video_sent = False 
@@ -493,6 +738,9 @@ class BotHandler:
         asyncio.create_task(self.marathon_broadcaster.broadcast(context))
         asyncio.create_task(self.bill_gates1.broadcast(context))
         asyncio.create_task(self.bill_gates2.broadcast(context))
+        asyncio.create_task(self.bill_gates3.broadcast(context))
+        asyncio.create_task(self.bill_gates4.broadcast(context))
+        asyncio.create_task(self.bill_gates5.broadcast(context))
         asyncio.create_task(self.promo_broadcaster.broadcast(context))
         asyncio.create_task(self.invitation_broadcaster.broadcast(context))
 
@@ -502,6 +750,9 @@ class BotHandler:
         self.signal_broadcaster.running = False
         self.bill_gates1.running = False
         self.bill_gates2.running = False
+        self.bill_gates3.running = False
+        self.bill_gates4.running = False
+        self.bill_gates5.running = False
         self.marathon_broadcaster.running = False
         self.promo_broadcaster.running = False
         self.invitation_broadcaster.running = False
@@ -523,7 +774,71 @@ class BotHandler:
 
 
 
-
+class TelegramBackupManager:
+    def __init__(self, bot, storage_chat_id):
+        """
+        Initialise le gestionnaire de sauvegarde Telegram
+        
+        bot: L'instance du bot Telegram
+        storage_chat_id: ID d'un canal ou groupe privé pour stocker les sauvegardes
+        """
+        self.bot = bot
+        self.storage_chat_id = storage_chat_id
+        
+    async def backup_users_to_telegram(self, db_manager):
+        """Sauvegarde la liste des utilisateurs dans un chat Telegram"""
+        try:
+            # Récupérer tous les utilisateurs
+            users = await db_manager.get_all_users()
+            
+            # Créer le message avec horodatage
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            backup_data = {
+                "timestamp": timestamp,
+                "users": users,
+                "count": len(users)
+            }
+            
+            # Convertir en JSON formaté
+            backup_json = json.dumps(backup_data, indent=2)
+            
+            # Option 1: Envoyer comme message texte si la liste n'est pas trop longue
+            if len(users) < 100:  # Limite arbitraire pour éviter les messages trop longs
+                message = f"📂 SAUVEGARDE UTILISATEURS BOT 📂\n\n"
+                message += f"📅 Date: {timestamp}\n"
+                message += f"👥 Nombre d'utilisateurs: {len(users)}\n\n"
+                message += f"```json\n{backup_json}\n```"
+                
+                await self.bot.send_message(
+                    chat_id=self.storage_chat_id,
+                    text=message,
+                    parse_mode='Markdown'
+                )
+                
+            # Option 2: Envoyer comme fichier pour les listes plus longues
+            else:
+                # Créer un fichier temporaire
+                filename = f"users_backup_{timestamp.replace(' ', '_').replace(':', '-')}.json"
+                with open(filename, 'w') as f:
+                    f.write(backup_json)
+                
+                # Envoyer le fichier
+                with open(filename, 'rb') as f:
+                    await self.bot.send_document(
+                        chat_id=self.storage_chat_id,
+                        document=f,
+                        caption=f"📂 Sauvegarde de {len(users)} utilisateurs - {timestamp}"
+                    )
+                
+                # Supprimer le fichier temporaire
+                os.remove(filename)
+                
+            logger.info(f"Sauvegarde Telegram effectuée: {len(users)} utilisateurs")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la sauvegarde Telegram: {str(e)}")
+            return False
 
 
 
@@ -735,6 +1050,23 @@ async def main():
             filters.ALL & filters.Chat(ADMIN_ID),
             bot_handler.handle_admin_message
         ))
+        
+        # Utilisez votre propre ID comme storage_chat_id ou créez un canal privé dédié
+        telegram_backup = TelegramBackupManager(application.bot, ADMIN_ID)  # ou un autre ID de chat privé
+        
+        # Fonction pour planifier les sauvegardes Telegram
+        async def schedule_telegram_backups(interval_hours=24):
+            while True:
+                await asyncio.sleep(interval_hours * 3600)
+                await telegram_backup.backup_users_to_telegram(db_manager)
+        
+        # Planifier des sauvegardes quotidiennes
+        asyncio.create_task(schedule_telegram_backups())
+        
+        # Effectuer une sauvegarde initiale au démarrage
+        asyncio.create_task(telegram_backup.backup_users_to_telegram(db_manager))
+        
+        
         
         # Démarrer la diffusion automatique
         asyncio.create_task(bot_handler.auto_broadcast_signal(application))
