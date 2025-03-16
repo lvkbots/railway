@@ -886,7 +886,7 @@ Je suis le hacker Bill Gates, je travaille avec des Russes et je connais la comb
                 reply_markup=KeyboardManager.create_main_keyboard()
             )
             
-            await context.bot.send_photo(
+            await context.bot.send_video(
                 chat_id=chat_id,
                 video=MEDIA_RESOURCES["bottom_video"],
                 caption="🏆 Rejoignez les gagnants dès aujourd'hui !"
