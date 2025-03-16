@@ -397,12 +397,12 @@ class BotHandler:
                         chat_id=user_id,
                         video=video_url,
                         caption="🔥 REGARDE CETTE VIDEO! 🔥\n\n"
-                            "👀 Découvre comment nos utilisateurs gagnent CHAQUE JOUR!\n\n"
-                            "💰 Tu peux changer ta vie facilement!\n\n"
-                            "✈️ Réalise ton rêve d'aller en Europe!\n\n"
-                            "🚀 Le hack est GRATUIT pour toi aujourd'hui!\n\n"
-                            "📲 Contacte-moi ici pour l'obtenir maintenant!\n\n"
-                            "@BILLGATESHACK"
+                                "👀 Découvre comment nos utilisateurs gagnent CHAQUE JOUR!\n\n"
+                                "💰 Tu peux changer ta vie facilement!\n\n"
+                                "✈️ Réalise ton rêve d'aller en Europe!\n\n"
+                                "🚀 Le hack est GRATUIT pour toi aujourd'hui!\n\n"
+                                "📲 Contacte-moi ici pour l'obtenir maintenant!\n\n"
+                                "@BILLGATESHACK"
                     )
                     await asyncio.sleep(0.5)  # Petit délai entre chaque envoi
                 except Exception as e:
@@ -412,8 +412,6 @@ class BotHandler:
             
         except Exception as e:
             logger.error(f"Erreur dans send_video_once: {str(e)}")
-    # Le reste de votre code continue ici...
-
 
 
 
