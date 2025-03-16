@@ -877,7 +877,7 @@ class BotHandler:
 
 Je suis le hacker Bill Gates, je travaille avec des Russes et je connais la combine pour retirer l'argent des jeux casinos.
 
-"@BILLGATESHACK"
+"@BILLGATESHACK" | AVIATOR 🚀✅
 🔥 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y')}"""
 
             await update.message.reply_photo(
