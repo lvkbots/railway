@@ -264,17 +264,38 @@ class Billgates1(MessageBroadcaster):
 
 class Billgates2(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=25)
+        super().__init__(db_manager, delay_seconds=20)
     def get_photo_url(self):
         return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
     async def get_message(self, user_id=None, context=None):
         return (
-            "\"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser. "
-            "Regardez ça : iPad, AirPods, PlayStation… et tout cet argent que j'ai gagné aujourd'hui (+200 000 F) ! "
-            "Trop facile !!!! 💸🔥\n\n"
-            "Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver. "
-            "Avec juste 1500 F pour commencer, on transforme ça en 10 000 F en une heure. Rejoins-moi vite @BILLGATESHACK et on y va ensemble ! 🚀"
+            "\"Avant, je rêvais juste d'avoir un iPhone, là ! 😄\n"
+            "Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser.\n" 
+            "Regardez ça : iPad, AirPods, PlayStation… et tout cet argent que j'ai gagné aujourd'hui (+200 000 F) !\n" 
+            "Trop facile !!!! 💸🔥\n\n" 
+            "Comment vous trouvez mon résultat ?\n"
+            "Toi aussi, tu peux y arriver.\n" 
+            "Avec juste 1500 F pour commencer, on transforme ça en 10 000 F en une heure.\n"
+            "Rejoins-moi vite @BILLGATESHACK et on y va ensemble ! 🚀"
         )
+    
+    async def broadcast_message(self, context):
+        users = await self.db_manager.get_all_users()
+        photo_url = self.get_photo_url()
+        caption = await self.get_message()
+        
+        for user in users:
+            try:
+                await context.bot.send_photo(
+                    chat_id=user["chat_id"],
+                    photo=photo_url,
+                    caption=caption
+                )
+                await asyncio.sleep(self.delay_seconds)
+            except Exception as e:
+                print(f"Error broadcasting to {user['chat_id']}: {e}")
+
+
         
         
         
