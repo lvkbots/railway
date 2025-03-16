@@ -43,7 +43,7 @@ ADMIN_ID = 7392567951
 MEDIA_RESOURCES = {
     "intro_video": "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
     "main_image": "https://i.postimg.cc/05CCgr53/photo-2025-02-17-09-41-43.jpg",
-    "bottom_image": "https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png",
+    "bottom_video": "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm",
     "payment_proofs": [
         "https://i.postimg.cc/fRDSWT41/photo-2025-02-13-14-41-26-2.jpg",
         "https://i.postimg.cc/VNHJFqSc/photo-2025-02-13-14-41-25-2.jpg",
@@ -98,7 +98,7 @@ class KeyboardManager:
         keyboard = [
             [InlineKeyboardButton("🎯 COMMENT LE HACK FONCTIONNE", callback_data="info_bots")],
             [InlineKeyboardButton("💰 PREUVES DE RETRAIT", callback_data="casino_withdrawal")],
-            [InlineKeyboardButton("📱 Contacter l'expert", url="https://t.me/BILLGATESHACK")]
+            [InlineKeyboardButton("✅ Contacter moi", url="https://t.me/BILLGATESHACK")]
         ]
         return InlineKeyboardMarkup(keyboard)
 
@@ -939,7 +939,7 @@ Je suis le hacker Bill Gates et je travaille avec des Russes, je connais la comb
 ✅ Intelligence artificielle avancée
 🎯 Taux de réussite de 98.7%
 💫 Mise à jour quotidienne des algorithmes
-⚡️ Plus de 1800 utilisateurs satisfaits
+⚡️ Plus de 58.000 utilisateurs satisfaits
 
 👇 Découvrez notre système en images 👇"""
         )
