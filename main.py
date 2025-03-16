@@ -52,10 +52,9 @@ MEDIA_RESOURCES = {
         "https://i.postimg.cc/zDkrZJjy/bandicam-2025-02-13-17-36-48-522.jpg"
     ],
     "info_images": [
-        
         "https://i.postimg.cc/6QGXDnjK/bandicam-2025-02-13-17-33-14-929.jpg",
         "https://i.postimg.cc/zf3B3yx2/bandicam-2025-02-13-17-24-18-009.jpg",
-        "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg",
+        "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm",  # Vidéo remplacée ici
         "https://i.postimg.cc/mgn4X8SV/bandicam-2025-02-13-17-33-57-485.jpg",
         "https://media.licdn.com/dms/image/D5622AQGO3fuy3Xsi1w/feedshare-shrink_2048_1536/0/1717229135545?e=2147483647&v=beta&t=bj-cWzd74icpjK9Vb5mL6DhXXvdCz12alcJLQvqSg3s"
     ]
