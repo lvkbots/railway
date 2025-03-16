@@ -247,6 +247,22 @@ class MarathonBroadcaster(MessageBroadcaster):
             "@BILLGATESHACK @BILLGATESHACK @BILLGATESHACK"
         )
 
+
+class Billgates1(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=20)
+    def get_photo_url(self):
+        return "https://i.postimg.cc/Kz573z4T/photo-2025-03-14-11-13-44.jpg"
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "🔍 **SCHÉMA DÉVELOPPÉ POUR AVIATOR !!!** 🔍\n\n"
+            "🔐 **ALGORITHME SECRET !!** 🔐\n\n"
+            "⚠️ **LE PLUS IMPORTANT ! PRÉCISION DE 96 %** ⚠️\n\n"
+            "👥 **JE PRENDS 5 PERSONNES MAINTENANT !!** 👥\n\n"
+            "💰 **ON VA GAGNER 63 000 F AUJOURD'HUI !** 💰"
+        )
+
+
 class PromoBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=1527)
@@ -304,6 +320,7 @@ class BotHandler:
         self.signal_broadcaster = SignalBroadcaster(db_manager)
         self.marathon_broadcaster = MarathonBroadcaster(db_manager)
         self.promo_broadcaster = PromoBroadcaster(db_manager)
+        self.bill_gates1 = Billgates1(db_manager)
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
 
@@ -367,6 +384,7 @@ class BotHandler:
         self.running = True
         asyncio.create_task(self.signal_broadcaster.broadcast(context))
         asyncio.create_task(self.marathon_broadcaster.broadcast(context))
+        asyncio.create_task(self.billgates1.broadcast(context))
         asyncio.create_task(self.promo_broadcaster.broadcast(context))
         asyncio.create_task(self.invitation_broadcaster.broadcast(context))
 
@@ -374,6 +392,7 @@ class BotHandler:
         """Arrête toutes les tâches de diffusion"""
         self.running = False
         self.signal_broadcaster.running = False
+        self.bill_gates1.running = False
         self.marathon_broadcaster.running = False
         self.promo_broadcaster.running = False
         self.invitation_broadcaster.running = False
