@@ -565,6 +565,8 @@ class BotHandler:
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
+        first_name = update.effective_user.first_name if update.effective_user else "utilisateur"
+        
         await self.db_manager.add_user(chat_id)
         try:
             await context.bot.send_video(
