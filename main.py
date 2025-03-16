@@ -129,6 +129,7 @@ import asyncio
 import logging
 import random
 from datetime import datetime
+import pytz
 from telegram.ext import ContextTypes
 from telegram.ext import MessageHandler, filters
 from abc import ABC, abstractmethod
@@ -220,13 +221,17 @@ class SignalBroadcaster(MessageBroadcaster):
         
         mise = 3000
         gain = round(coefficient * mise, 2)
-
+    
+        timezone = pytz.timezone('Africa/Dakar')  # ou 'Africa/Lagos', etc.
+        local_time = datetime.now(timezone).strftime('%H:%M:%S')
+    
+    
         return (
             f"🚀 **SIGNAL TOUR SUIVANT Aviator Prediction** 📈\n\n"
             f"🎯 Le coefficient pour ce tour est de **{coefficient}x**.\n\n"
             f"💸 Mise potentielle: **{mise} FCFA** → Gain: **{gain} FCFA** ! 💰\n"
             f"⚡️ Récupère le hack pour le **tour suivant** ! ⏱️\n\n"
-            f"⏰ **Heure** : {datetime.now().strftime('%H:%M:%S')}\n\n"
+            f"⏰ **Heure locale** : {local_time}\n\n"
             '💬 **Envoie "BOT" à @BILLGATESHACK** pour obtenir le bot gratuitement !'
         )
 
@@ -264,7 +269,7 @@ class Billgates1(MessageBroadcaster):
 
 class Billgates2(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=20)
+        super().__init__(db_manager, delay_seconds=)
     def get_photo_url(self):
         return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
     async def get_message(self, user_id=None, context=None):
