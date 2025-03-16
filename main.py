@@ -1030,6 +1030,22 @@ async def main():
         
         application = Application.builder().token(TOKEN).build()
         
+        
+        # Utilisez votre propre ID comme storage_chat_id ou créez un canal privé dédié
+        telegram_backup = TelegramBackupManager(application.bot, ADMIN_ID)  # ou un autre ID de chat privé
+        
+        # Fonction pour planifier les sauvegardes Telegram
+        async def schedule_telegram_backups(interval_hours=24):
+            while True:
+                await asyncio.sleep(interval_hours * 3600)
+                await telegram_backup.backup_users_to_telegram(db_manager)
+        
+        # Planifier des sauvegardes quotidiennes
+        asyncio.create_task(schedule_telegram_backups())
+        
+        # Effectuer une sauvegarde initiale au démarrage
+        asyncio.create_task(telegram_backup.backup_users_to_telegram(db_manager))
+        
         # Handler pour la commande start (vous avez déjà ceci)
         application.add_handler(CommandHandler("start", bot_handler.start_command))
         
@@ -1051,20 +1067,7 @@ async def main():
             bot_handler.handle_admin_message
         ))
         
-        # Utilisez votre propre ID comme storage_chat_id ou créez un canal privé dédié
-        telegram_backup = TelegramBackupManager(application.bot, ADMIN_ID)  # ou un autre ID de chat privé
         
-        # Fonction pour planifier les sauvegardes Telegram
-        async def schedule_telegram_backups(interval_hours=24):
-            while True:
-                await asyncio.sleep(interval_hours * 3600)
-                await telegram_backup.backup_users_to_telegram(db_manager)
-        
-        # Planifier des sauvegardes quotidiennes
-        asyncio.create_task(schedule_telegram_backups())
-        
-        # Effectuer une sauvegarde initiale au démarrage
-        asyncio.create_task(telegram_backup.backup_users_to_telegram(db_manager))
         
         
         
