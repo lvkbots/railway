@@ -205,10 +205,10 @@ class MessageBroadcaster(ABC):
 class SignalBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=10)
-
+    
     def get_photo_url(self):
         return 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
-
+    
     async def get_message(self, user_id=None, context=None):
         # Génération du coefficient avec distribution ciblée
         random_val = random.random()
@@ -221,17 +221,16 @@ class SignalBroadcaster(MessageBroadcaster):
         
         mise = 3000
         gain = round(coefficient * mise, 2)
-    
-        timezone = pytz.timezone('Africa/Dakar')  # ou 'Africa/Lagos', etc.
-        local_time = datetime.now(timezone).strftime('%H:%M:%S')
-    
-    
+        
+        # Utilisez simplement l'heure UTC ou l'heure du serveur
+        current_time = datetime.now().strftime('%H:%M:%S')
+        
         return (
             f"🚀 **SIGNAL TOUR SUIVANT Aviator Prediction** 📈\n\n"
             f"🎯 Le coefficient pour ce tour est de **{coefficient}x**.\n\n"
             f"💸 Mise potentielle: **{mise} FCFA** → Gain: **{gain} FCFA** ! 💰\n"
             f"⚡️ Récupère le hack pour le **tour suivant** ! ⏱️\n\n"
-            f"⏰ **Heure locale** : {local_time}\n\n"
+            f"⏰ **Heure** : {current_time}\n\n"
             '💬 **Envoie "BOT" à @BILLGATESHACK** pour obtenir le bot gratuitement !'
         )
 
