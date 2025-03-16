@@ -129,7 +129,6 @@ import asyncio
 import logging
 import random
 from datetime import datetime
-import pytz
 from telegram.ext import ContextTypes
 from telegram.ext import MessageHandler, filters
 from abc import ABC, abstractmethod
