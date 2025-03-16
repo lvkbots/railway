@@ -203,7 +203,7 @@ class MessageBroadcaster(ABC):
 
 class SignalBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=10)
+        super().__init__(db_manager, delay_seconds=5174)
     
     def get_photo_url(self):
         return 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
@@ -253,7 +253,7 @@ class MarathonBroadcaster(MessageBroadcaster):
 
 class Billgates1(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=15)
+        super().__init__(db_manager, delay_seconds=69264)
     
     def get_photo_url(self):
         return "https://i.postimg.cc/Kz573z4T/photo-2025-03-14-11-13-44.jpg"
