@@ -269,7 +269,7 @@ class Billgates1(MessageBroadcaster):
 
 class Billgates2(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=)
+        super().__init__(db_manager, delay_seconds=25956)
     def get_photo_url(self):
         return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
     async def get_message(self, user_id=None, context=None):
@@ -310,7 +310,7 @@ class PromoBroadcaster(MessageBroadcaster):
 
 class InvitationBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=1805)
+        super().__init__(db_manager, delay_seconds=29232)
 
     def get_photo_url(self):
         return "https://i.postimg.cc/yxn4FPdm/bandicam-2025-02-13-17-35-47-978.jpg"
