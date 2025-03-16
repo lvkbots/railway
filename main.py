@@ -659,6 +659,8 @@ class BotHandler:
             await update.message.reply_text("Message reçu, Admin.")
         else:
             await update.message.reply_text(response_message)
+            
+            
     async def send_video_once(self, context):
         """Envoie la vidéo une seule fois à tous les utilisateurs après 20 secondes"""
         # Vérifier si la vidéo a déjà été envoyée
@@ -869,7 +871,7 @@ class BotHandler:
             
             message = f"""🎯 BONJOUR {first_name} ❗️
 
-Je suis le hacker Bill Gates et je travaille avec des Russes, je connais la combine pour retirer l'argent des jeux casinos.
+Je suis le hacker Bill Gates, je travaille avec des Russes et je connais la combine pour retirer l'argent des jeux casinos.
 
 ✅ 58.000 personnes ont déjà gagné avec moi. Et je peux vous garantir en toute confiance que vous gagnerez.
 
@@ -886,7 +888,7 @@ Je suis le hacker Bill Gates et je travaille avec des Russes, je connais la comb
             
             await context.bot.send_photo(
                 chat_id=chat_id,
-                photo=MEDIA_RESOURCES["bottom_image"],
+                video=MEDIA_RESOURCES["bottom_video"],
                 caption="🏆 Rejoignez les gagnants dès aujourd'hui !"
             )
             
