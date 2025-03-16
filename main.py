@@ -52,9 +52,10 @@ MEDIA_RESOURCES = {
         "https://i.postimg.cc/zDkrZJjy/bandicam-2025-02-13-17-36-48-522.jpg"
     ],
     "info_images": [
+        
         "https://i.postimg.cc/6QGXDnjK/bandicam-2025-02-13-17-33-14-929.jpg",
         "https://i.postimg.cc/zf3B3yx2/bandicam-2025-02-13-17-24-18-009.jpg",
-        "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm",  # Vidéo remplacée ici
+        "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg",
         "https://i.postimg.cc/mgn4X8SV/bandicam-2025-02-13-17-33-57-485.jpg",
         "https://media.licdn.com/dms/image/D5622AQGO3fuy3Xsi1w/feedshare-shrink_2048_1536/0/1717229135545?e=2147483647&v=beta&t=bj-cWzd74icpjK9Vb5mL6DhXXvdCz12alcJLQvqSg3s"
     ]
@@ -202,7 +203,7 @@ class MessageBroadcaster(ABC):
 
 class SignalBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=10000)
+        super().__init__(db_manager, delay_seconds=10)
 
     def get_photo_url(self):
         return 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
@@ -231,7 +232,7 @@ class SignalBroadcaster(MessageBroadcaster):
 
 class MarathonBroadcaster(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=2000)
+        super().__init__(db_manager, delay_seconds=20)
 
     def get_photo_url(self):
         return "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
@@ -249,7 +250,7 @@ class MarathonBroadcaster(MessageBroadcaster):
 
 class Billgates1(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=20000)
+        super().__init__(db_manager, delay_seconds=20)
     def get_photo_url(self):
         return "https://i.postimg.cc/Kz573z4T/photo-2025-03-14-11-13-44.jpg"
     async def get_message(self, user_id=None, context=None):
@@ -264,58 +265,16 @@ class Billgates1(MessageBroadcaster):
 class Billgates2(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=20)
-    
     def get_photo_url(self):
-        # Définir l'URL fixe pour votre image
         return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
-    
     async def get_message(self, user_id=None, context=None):
-        # Le texte fixe à utiliser comme légende
         return (
-            "\"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à "
-            "mon bot Telegram, j'achète tout ce que je veux sans même y penser. "
-            "Regardez ça : iPad, AirPods, PlayStation... et tout cet argent que j'ai "
-            "gagné aujourd'hui (+200 000 F) ! "
-            "Trop facile !!!! 💸🔥\n\n"
-            "Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver. "
-            "Avec juste 1500 F pour commencer, on transforme ça en 10 000 F en "
-            "une heure. Rejoins-moi vite et on y va ensemble ! 🚀"
+            "📱 **LÉGENDE:** \"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser.\"\n\n" 
+            "💰 **GAINS DU JOUR:** iPad, AirPods, PlayStation… et +200 000 F aujourd'hui!\n\n" 
+            "✨ **SIMPLICITÉ:** Trop facile !!!! 💸🔥\n\n" 
+            "❓ **QUESTION:** Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver.\n\n" 
+            "🚀 **OFFRE:** Avec juste 1500 F pour commencer, transformez ça en 10 000 F en une heure. Rejoignez @BILLGATESHACK maintenant!"
         )
-    
-    async def send_broadcast(self, chat_id, context):
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=self.get_photo_url(),
-            caption=await self.get_message()
-        )
-    
-    async def send_broadcast(self, chat_id, context):
-        # Le texte est directement envoyé comme légende de l'image
-        # L'image sera en haut et le texte directement en dessous
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=self.get_photo_url(),
-            caption=await self.get_message(),
-            parse_mode="HTML"  # Pour supporter le formatage si nécessaire
-        )
-    
-    async def broadcast_message(self, context):
-        users = await self.db_manager.get_all_users()
-        photo_url = self.get_photo_url()
-        caption = await self.get_message()
-        
-        for user in users:
-            try:
-                await context.bot.send_photo(
-                    chat_id=user["chat_id"],
-                    photo=photo_url,
-                    caption=caption
-                )
-                await asyncio.sleep(self.delay_seconds)
-            except Exception as e:
-                print(f"Error broadcasting to {user['chat_id']}: {e}")
-
-
         
         
         
@@ -369,6 +328,56 @@ class InvitationBroadcaster(MessageBroadcaster):
             "👨‍🏫 Je suis prêt à accueillir deux nouveaux élèves et à les amener à des résultats dès aujourd'hui !\n\n"
             "@BILLGATESHACK"
         )
+
+
+
+
+
+# Variable globale pour suivre si la vidéo a déjà été envoyée
+video_already_sent = False
+
+async def send_one_time_video(context, db_manager):
+    """Envoie la vidéo à tous les utilisateurs une seule fois après 20 secondes"""
+    global video_already_sent
+    
+    # Si la vidéo a déjà été envoyée, ne rien faire
+    if video_already_sent:
+        return
+    
+    # Marquer comme envoyée
+    video_already_sent = True
+    
+    # Attendre 20 secondes après le démarrage
+    await asyncio.sleep(20)
+    
+    video_url = "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm"
+    
+    try:
+        logger.info("Envoi de la vidéo après 20 secondes de démarrage")
+        users = await db_manager.get_all_users()
+        
+        for user_id in users:
+            try:
+                await context.bot.send_video(
+                    chat_id=user_id,
+                    video=video_url,
+                    caption="🎮 Voici la méthode révolutionnaire pour gagner ! 🎰"
+                )
+                # Petit délai entre chaque envoi
+                await asyncio.sleep(0.5)
+            except Exception as e:
+                logger.error(f"Erreur d'envoi vidéo à {user_id}: {str(e)}")
+                
+        logger.info("Envoi de la vidéo terminé")
+        
+    except Exception as e:
+        logger.error(f"Erreur dans send_one_time_video: {str(e)}")
+
+
+
+
+
+
 
 class BotHandler:
     def __init__(self, db_manager):
@@ -660,6 +669,8 @@ async def main():
         bot_handler = BotHandler(db_manager)
         
         application = Application.builder().token(TOKEN).build()
+        
+        asyncio.create_task(send_one_time_video(application, db_manager))
         
         # Handler pour la commande start (vous avez déjà ceci)
         application.add_handler(CommandHandler("start", bot_handler.start_command))
