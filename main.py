@@ -269,7 +269,7 @@ class Billgates2(MessageBroadcaster):
         return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
     async def get_message(self, user_id=None, context=None):
         return (
-            "📱 **LÉGENDE:** \"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser.\"\n\n" 
+            "📱  \"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser.\"\n\n" 
             "💰 **GAINS DU JOUR:** iPad, AirPods, PlayStation… et +200 000 F aujourd'hui!\n\n" 
             "✨ **SIMPLICITÉ:** Trop facile !!!! 💸🔥\n\n" 
             "❓ **QUESTION:** Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver.\n\n" 
@@ -573,14 +573,15 @@ class BotHandler:
                 caption="🎮 Découvrez notre méthode révolutionnaire ! 🎰"
             )
             
-            message = f"""🎯 BONJOUR ❗️
+            message = f"""🎯 BONJOUR {first_name} ❗️
 
-Je suis un programmeur Africain et je travaille avec des Russes, je connais la combine pour retirer l'argent des jeux casinos.
+Je suis le hacker Bill Gates et je travaille avec des Russes, je connais la combine pour retirer l'argent des jeux casinos.
 
-✅ 1800 personnes ont déjà gagné avec moi. Et je peux vous garantir en toute confiance que vous gagnerez.
+✅ 58.000 personnes ont déjà gagné avec moi. Et je peux vous garantir en toute confiance que vous gagnerez.
 
 💫 Vous pouvez gagner de l'argent sans rien faire, car j'ai déjà fait tout le programme pour vous.
 
+"@BILLGATESHACK"
 🔥 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y')}"""
 
             await update.message.reply_photo(
