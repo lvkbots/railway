@@ -774,71 +774,7 @@ class BotHandler:
 
 
 
-class TelegramBackupManager:
-    def __init__(self, bot, storage_chat_id):
-        """
-        Initialise le gestionnaire de sauvegarde Telegram
-        
-        bot: L'instance du bot Telegram
-        storage_chat_id: ID d'un canal ou groupe privé pour stocker les sauvegardes
-        """
-        self.bot = bot
-        self.storage_chat_id = storage_chat_id
-        
-    async def backup_users_to_telegram(self, db_manager):
-        """Sauvegarde la liste des utilisateurs dans un chat Telegram"""
-        try:
-            # Récupérer tous les utilisateurs
-            users = await db_manager.get_all_users()
-            
-            # Créer le message avec horodatage
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            backup_data = {
-                "timestamp": timestamp,
-                "users": users,
-                "count": len(users)
-            }
-            
-            # Convertir en JSON formaté
-            backup_json = json.dumps(backup_data, indent=2)
-            
-            # Option 1: Envoyer comme message texte si la liste n'est pas trop longue
-            if len(users) < 100:  # Limite arbitraire pour éviter les messages trop longs
-                message = f"📂 SAUVEGARDE UTILISATEURS BOT 📂\n\n"
-                message += f"📅 Date: {timestamp}\n"
-                message += f"👥 Nombre d'utilisateurs: {len(users)}\n\n"
-                message += f"```json\n{backup_json}\n```"
-                
-                await self.bot.send_message(
-                    chat_id=self.storage_chat_id,
-                    text=message,
-                    parse_mode='Markdown'
-                )
-                
-            # Option 2: Envoyer comme fichier pour les listes plus longues
-            else:
-                # Créer un fichier temporaire
-                filename = f"users_backup_{timestamp.replace(' ', '_').replace(':', '-')}.json"
-                with open(filename, 'w') as f:
-                    f.write(backup_json)
-                
-                # Envoyer le fichier
-                with open(filename, 'rb') as f:
-                    await self.bot.send_document(
-                        chat_id=self.storage_chat_id,
-                        document=f,
-                        caption=f"📂 Sauvegarde de {len(users)} utilisateurs - {timestamp}"
-                    )
-                
-                # Supprimer le fichier temporaire
-                os.remove(filename)
-                
-            logger.info(f"Sauvegarde Telegram effectuée: {len(users)} utilisateurs")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Erreur lors de la sauvegarde Telegram: {str(e)}")
-            return False
+
 
 
 
@@ -1030,22 +966,6 @@ async def main():
         
         application = Application.builder().token(TOKEN).build()
         
-        
-        # Utilisez votre propre ID comme storage_chat_id ou créez un canal privé dédié
-        telegram_backup = TelegramBackupManager(application.bot, ADMIN_ID)  # ou un autre ID de chat privé
-        
-        # Fonction pour planifier les sauvegardes Telegram
-        async def schedule_telegram_backups(interval_hours=24):
-            while True:
-                await asyncio.sleep(interval_hours * 3600)
-                await telegram_backup.backup_users_to_telegram(db_manager)
-        
-        # Planifier des sauvegardes quotidiennes
-        asyncio.create_task(schedule_telegram_backups())
-        
-        # Effectuer une sauvegarde initiale au démarrage
-        asyncio.create_task(telegram_backup.backup_users_to_telegram(db_manager))
-        
         # Handler pour la commande start (vous avez déjà ceci)
         application.add_handler(CommandHandler("start", bot_handler.start_command))
         
@@ -1066,10 +986,6 @@ async def main():
             filters.ALL & filters.Chat(ADMIN_ID),
             bot_handler.handle_admin_message
         ))
-        
-        
-        
-        
         
         # Démarrer la diffusion automatique
         asyncio.create_task(bot_handler.auto_broadcast_signal(application))
