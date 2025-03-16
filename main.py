@@ -266,11 +266,12 @@ class Billgates2(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=20)
     
-    # Implémentation des méthodes abstraites requises
     def get_photo_url(self):
+        # Définir l'URL fixe pour votre image
         return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
     
     async def get_message(self, user_id=None, context=None):
+        # Le texte fixe à utiliser comme légende
         return (
             "\"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à "
             "mon bot Telegram, j'achète tout ce que je veux sans même y penser. "
@@ -281,27 +282,6 @@ class Billgates2(MessageBroadcaster):
             "Avec juste 1500 F pour commencer, on transforme ça en 10 000 F en "
             "une heure. Rejoins-moi vite et on y va ensemble ! 🚀"
         )
-    
-    # Méthode personnalisée que vous pouvez utiliser si vous modifiez la classe parente
-    async def get_message_with_photo(self, user_id=None, context=None):
-        return {
-            "photo": self.get_photo_url(),
-            "caption": await self.get_message(user_id, context)
-        }
-    
-    # Surcharge de la méthode broadcast si c'est possible dans votre architecture
-    async def broadcast_message(self, users=None):
-        if users is None:
-            users = await self.db_manager.get_users()
-        
-        for user in users:
-            data = await self.get_message_with_photo(user_id=user.id)
-            # Supposons que votre bot a une méthode send_photo
-            await self.db_manager.bot.send_photo(
-                chat_id=user.telegram_id, 
-                photo=data["photo"], 
-                caption=data["caption"]
-            )
     
     async def send_broadcast(self, chat_id, context):
         await context.bot.send_photo(
