@@ -384,7 +384,7 @@ class BotHandler:
         self.running = True
         asyncio.create_task(self.signal_broadcaster.broadcast(context))
         asyncio.create_task(self.marathon_broadcaster.broadcast(context))
-        asyncio.create_task(self.billgates1.broadcast(context))
+        asyncio.create_task(self.bill_gates1.broadcast(context))
         asyncio.create_task(self.promo_broadcaster.broadcast(context))
         asyncio.create_task(self.invitation_broadcaster.broadcast(context))
 
