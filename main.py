@@ -262,7 +262,7 @@ class Billgates1(MessageBroadcaster):
             "💰 **ON VA GAGNER 63 000 F AUJOURD'HUI !** 💰"
         )
 
-class AviatorTelegramBroadcaster(MessageBroadcaster):
+class Billgates2(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=20)
     
