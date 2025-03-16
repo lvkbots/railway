@@ -42,6 +42,7 @@ ADMIN_ID = 7392567951
 # Ressources médias (inchangées)
 MEDIA_RESOURCES = {
     "intro_video": "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
+    "intro_video1": "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm",
     "main_image": "https://i.postimg.cc/05CCgr53/photo-2025-02-17-09-41-43.jpg",
     "bottom_video": "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm",
     "payment_proofs": [
@@ -659,8 +660,6 @@ class BotHandler:
             await update.message.reply_text("Message reçu, Admin.")
         else:
             await update.message.reply_text(response_message)
-            
-            
     async def send_video_once(self, context):
         """Envoie la vidéo une seule fois à tous les utilisateurs après 20 secondes"""
         # Vérifier si la vidéo a déjà été envoyée
@@ -868,14 +867,17 @@ class BotHandler:
                 video=MEDIA_RESOURCES["intro_video"],
                 caption="🎮 Découvrez notre méthode révolutionnaire ! 🎰"
             )
+            await context.bot.send_video(
+                chat_id=chat_id,
+                video=MEDIA_RESOURCES["intro_video1"],
+                caption="🎮 Découvrez notre méthode révolutionnaire ! 🎰"
+            )
             
             message = f"""🎯 BONJOUR {first_name} ❗️
 
 Je suis le hacker Bill Gates, je travaille avec des Russes et je connais la combine pour retirer l'argent des jeux casinos.
 
-✅ 58.000 personnes ont déjà gagné avec moi. Et je peux vous garantir en toute confiance que vous gagnerez.
-
-💫 Vous pouvez gagner de l'argent sans rien faire, car j'ai déjà fait tout le programme pour vous.
+✅ Vous pouvez gagner de l'argent sans rien faire, car j'ai déjà fait tout le programme pour vous.
 
 "@BILLGATESHACK"
 🔥 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y')}"""
@@ -886,11 +888,7 @@ Je suis le hacker Bill Gates, je travaille avec des Russes et je connais la comb
                 reply_markup=KeyboardManager.create_main_keyboard()
             )
             
-            await context.bot.send_video(
-                chat_id=chat_id,
-                video=MEDIA_RESOURCES["bottom_video"],
-                caption="🏆 Rejoignez les gagnants dès aujourd'hui !"
-            )
+            
             
         except Exception as e:
             logger.error(f"Erreur start: {chat_id}: {e}")
