@@ -253,7 +253,7 @@ class MarathonBroadcaster(MessageBroadcaster):
 
 class Billgates1(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=62712)
+        super().__init__(db_manager, delay_seconds=15)
     
     def get_photo_url(self):
         return "https://i.postimg.cc/Kz573z4T/photo-2025-03-14-11-13-44.jpg"
