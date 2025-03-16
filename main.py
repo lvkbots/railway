@@ -269,14 +269,21 @@ class Billgates2(MessageBroadcaster):
         return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
     async def get_message(self, user_id=None, context=None):
         return (
-            "\"Avant, je rêvais juste d'avoir un iPhone, là ! 😄\n"
-            "Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser.\n" 
-            "Regardez ça : iPad, AirPods, PlayStation… et tout cet argent que j'ai gagné aujourd'hui (+200 000 F) !\n" 
-            "Trop facile !!!! 💸🔥\n\n" 
-            "Comment vous trouvez mon résultat ?\n"
-            "Toi aussi, tu peux y arriver.\n" 
-            "Avec juste 1500 F pour commencer, on transforme ça en 10 000 F en une heure.\n"
-            "Rejoins-moi vite @BILLGATESHACK et on y va ensemble ! 🚀"
+            "\"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser. "
+            "Regardez ça : iPad, AirPods, PlayStation… et tout cet argent que j'ai gagné aujourd'hui (+200 000 F) ! "
+            "Trop facile !!!! 💸🔥\n\n"
+            "Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver. "
+            "Avec juste 1500 F pour commencer, on transforme ça en 10 000 F en une heure. Rejoins-moi vite @BILLGATESHACK et on y va ensemble ! 🚀"
+        )
+    
+    async def send_broadcast(self, chat_id, context):
+        # Le texte est directement envoyé comme légende de l'image
+        # L'image sera en haut et le texte directement en dessous
+        await context.bot.send_photo(
+            chat_id=chat_id,
+            photo=self.get_photo_url(),
+            caption=await self.get_message(),
+            parse_mode="HTML"  # Pour supporter le formatage si nécessaire
         )
     
     async def broadcast_message(self, context):
