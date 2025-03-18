@@ -1181,8 +1181,7 @@ async def main():
         
         application = Application.builder().token(TOKEN).build()
         
-        # Handler pour la commande start (vous avez déjà ceci)
-        application.add_handler(CommandHandler("start", bot_handler.start_command))
+        
         
         # Ajoutez ces handlers
         application.add_handler(CommandHandler("help", bot_handler.help_command))
