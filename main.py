@@ -1181,7 +1181,8 @@ async def main():
         
         application = Application.builder().token(TOKEN).build()
         
-        
+        # Handler pour la commande start (vous avez déjà ceci)
+        application.add_handler(CommandHandler("start", bot_handler.start_command))
         
         # Ajoutez ces handlers
         application.add_handler(CommandHandler("help", bot_handler.help_command))
@@ -1196,7 +1197,7 @@ async def main():
         application.add_handler(CallbackQueryHandler(bot_handler.handle_button))
         
         # Dans la fonction main()
-        application.add_handler(CommandHandler("start", bot_handler.start_command, pass_args=True))
+        application.add_handler(CommandHandler("start", bot_handler.start_command))
         
         # Handler pour tous les messages de l'admin (vous avez déjà ceci)
         application.add_handler(MessageHandler(
