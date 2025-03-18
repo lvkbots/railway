@@ -39,75 +39,6 @@ def home():
 TOKEN = "7859942806:AAHy4pNgFunsgO4lA2wK8TLa89tSzZjvY58"
 ADMIN_ID = 7392567951
 
-
-# Configuration MongoDB
-MONGO_INITDB_ROOT_USERNAME = os.environ.get("mongo", "root")
-MONGO_INITDB_ROOT_PASSWORD = os.environ.get("qRBgVFYfQETcpOEAGtMEtSUwYUpTmJiy", "example")
-MONGOHOST = os.environ.get("mongodb.railway.internal", "mongodb.railway.internal") 
-MONGOPORT = os.environ.get("27017", "27017")
-MONGOUSER = os.environ.get("mongo", MONGO_INITDB_ROOT_USERNAME)
-MONGOPASSWORD = os.environ.get("qRBgVFYfQETcpOEAGtMEtSUwYUpTmJiy", MONGO_INITDB_ROOT_PASSWORD)
-MONGO_URL = os.environ.get("mongodb://mongo:qRBgVFYfQETcpOEAGtMEtSUwYUpTmJiy@mongodb.railway.internal:27017", f"mongodb://{MONGOUSER}:{MONGOPASSWORD}@{MONGOHOST}:{MONGOPORT}/?authSource=admin")
-MONGO_PUBLIC_URL = os.environ.get("mongodb://mongo:qRBgVFYfQETcpOEAGtMEtSUwYUpTmJiy@switchyard.proxy.rlwy.net:56525", MONGO_URL)
-
-# Initialisation de MongoDB
-client = AsyncIOMotorClient(MONGO_URL)
-db = client['bot_database']
-users_collection = db['users']
-
-# Logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-async def add_or_update_user(user_id, username, first_name, last_name):
-    """Ajoute ou met à jour un utilisateur dans la base de données"""
-    user_data = {
-        'user_id': user_id,
-        'username': username,
-        'first_name': first_name,
-        'last_name': last_name,
-        'last_activity': datetime.now(),
-        'registration_date': datetime.now()
-    }
-    
-    # Insertion avec upsert (mise à jour si existe déjà)
-    await users_collection.update_one(
-        {'user_id': user_id}, 
-        {'$set': user_data, '$setOnInsert': {'registration_date': datetime.now()}}, 
-        upsert=True
-    )
-    logger.info(f"Utilisateur enregistré/mis à jour: {user_id}")
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Commande /start pour enregistrer l'utilisateur"""
-    user = update.effective_user
-    await add_or_update_user(
-        user.id, 
-        user.username, 
-        user.first_name, 
-        user.last_name
-    )
-    await update.message.reply_text(f"Bonjour {user.first_name}! Vous êtes enregistré.")
-
-async def get_all_users():
-    """Récupère tous les utilisateurs"""
-    return await users_collection.find().to_list(length=None)
-
-async def broadcast_message(message):
-    """Envoie un message à tous les utilisateurs"""
-    users = await get_all_users()
-    for user in users:
-        # Logique d'envoi de message ici
-        pass
-
-async def init_db():
-    """Initialise la base de données"""
-    # Création d'un index unique sur user_id
-    await users_collection.create_index("user_id", unique=True)
-    logger.info("Base de données MongoDB initialisée")
-
-
-
 # Ressources médias (inchangées)
 MEDIA_RESOURCES = {
     "intro_video": "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
@@ -1276,12 +1207,6 @@ async def main():
         
         # Démarrer la diffusion automatique
         asyncio.create_task(bot_handler.auto_broadcast_signal(application))
-        
-        asyncio.get_event_loop().run_until_complete(init_db())
-    
-        # Lancement du bot
-        application.run_polling()
-        
         
         keep_alive()
         logger.info("Bot démarré!")
