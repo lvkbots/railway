@@ -452,7 +452,7 @@ class InvitationBroadcaster(MessageBroadcaster):
 
 class Billgates3(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=44200)  # Délai de 12 heures (43200 secondes)
+        super().__init__(db_manager, delay_seconds=44200)  
 
     def get_photo_url(self):
         return "https://i.postimg.cc/k4CF58M9/photo-2025-03-15-17-38-19.jpg"
@@ -462,7 +462,6 @@ class Billgates3(MessageBroadcaster):
             "🔺 Les signaux GRATOS de la journée, ça démarre demain à 15h40.\n"
             "🔺 Les signaux GRATOS du soir, c'est à 21h15.\n"
             "On joue sur 1xCasino 👇🏼\n"
-            "🔺 https://casaff.top/L?tag=d_4168199m_79150c_&site=4168199&ad=79150&r=registration\n"
             "(Le bot est intégré dans le code de cette page ! Faut ABSOLUMENT passer par ce lien !)\n"
             "Allez-y et mettez au moins 900 F sur votre compte ! C'est comme ça que le bot va marcher.\n"
             "Si tu sais pas comment gagner avec le bot, écris-moi \"START\" ici \n"
@@ -512,9 +511,208 @@ class Billgates3(MessageBroadcaster):
 
 
 
-class Billgates5(MessageBroadcaster):
+
+class Billgates6(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=37400)  
+    def get_photo_url(self):
+        return "https://i.postimg.cc/FKdrjrsK/photo-2025-03-05-21-09-43.jpg"
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "J'ai une équipe de développeurs programmateurs balèzes avec moi. Ensemble, on a créé un bot Telegram spécial qui déchire dans Aviator, en prédisant les coefficients🚀\n\n"
+            "« Comment l'utiliser ? » Facile ! 😎 \n\n"
+            "Je te donne l'accès, tu demandes un coefficient pour jouer (si t'as assez de balance sur ton compte). \n\n"
+            "Le bot t'envoie le coefficient, et faut vite retirer ta mise avant que l'avion dans Aviator s'envole ! 💸"
+        )
+   
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+               
+                for user_id in users:
+                    if not self.running:
+                        break
+                   
+                    message = await self.get_message(user_id, context)
+                    photo_url = self.get_photo_url()
+                   
+                    # Envoi du message comme caption de l'image en un seul message
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                   
+                    await asyncio.sleep(0.5)
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
+
+
+
+
+
+class Billgates7(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=52600)  # Délai de 9 heures (32400 secondes)
+    def get_photo_url(self):
+        return "https://i.postimg.cc/3xtNKXFD/bandicam-2025-02-13-17-22-55-803.jpg"
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "🚀 OPPORTUNITÉ UNIQUE 🚀\n\n"
+            "Un peu de travail intelligent peut vous sortir de la misère ! 💰\n\n"
+            "Notre hack exclusif a déjà aidé des centaines de personnes à transformer leur situation financière. ✨\n\n"
+            "Contactez-moi pour recevoir l'application GRATUITEMENT et changer votre vie dès aujourd'hui ! 🔥"
+        )
+   
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+               
+                for user_id in users:
+                    if not self.running:
+                        break
+                   
+                    message = await self.get_message(user_id, context)
+                    photo_url = self.get_photo_url()
+                   
+                    # Envoi du message comme caption de l'image en un seul message
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                   
+                    await asyncio.sleep(0.5)
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
+
+
+
+
+class Billgates8(MessageBroadcaster):
     def __init__(self, db_manager):
         super().__init__(db_manager, delay_seconds=32400)  # Délai de 9 heures (32400 secondes)
+    def get_video_url(self):
+        return "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm"
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "🔥 REGARDE CETTE VIDEO! 🔥\n\n"
+            "👀 Découvre comment nos utilisateurs gagnent CHAQUE JOUR!\n\n"
+            "💰 Tu peux changer ta vie facilement!\n\n"
+            "✈️ Réalise ton rêve d'aller en Europe!\n\n"
+            "🚀 Le hack est GRATUIT pour toi aujourd'hui!\n\n"
+            "📲 Contacte-moi ici pour l'obtenir maintenant!\n\n"
+            "@BILLGATESHACK"
+        )
+   
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de la vidéo"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+               
+                for user_id in users:
+                    if not self.running:
+                        break
+                   
+                    message = await self.get_message(user_id, context)
+                    video_url = self.get_video_url()
+                   
+                    # Envoi du message comme caption de la vidéo en un seul message
+                    try:
+                        await context.bot.send_video(
+                            chat_id=user_id,
+                            video=video_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                   
+                    await asyncio.sleep(0.5)
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
+
+
+
+
+class Billgates9(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=32400)  # Délai de 9 heures (32400 secondes)
+    def get_photo_url(self):
+        return "https://i.postimg.cc/Bv2mXzPV/photo-2025-03-18-11-42-49.jpg"
+    async def get_message(self, user_id=None, context=None):
+        return (
+            "💰 Je  m'appelle Kaido Sekou Alias BILL GATES ! 💰\n\n"
+            "💰 Aujourd'hui je suis millionnaire ! 💰\n\n"
+            "🚗 Je m'achète la voiture que je veux !\n\n"
+            "✈️ Je voyage chaque jour : Dubaï, Panama, Brésil, États-Unis !\n\n"
+            "👨‍👩‍👧‍👦 Aujourd'hui ma famille vit bien grâce à mon application !\n\n"
+            "🔥 Si tu veux sortir de la misère également, contacte-moi @BILLGATESHACK"
+        )
+   
+    async def broadcast(self, context):
+        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
+        while self.running:
+            try:
+                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
+                users = await self.db_manager.get_all_users()
+               
+                for user_id in users:
+                    if not self.running:
+                        break
+                   
+                    message = await self.get_message(user_id, context)
+                    photo_url = self.get_photo_url()
+                   
+                    # Envoi du message comme caption de l'image en un seul message
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_url,
+                            caption=message,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
+                   
+                    await asyncio.sleep(0.5)
+                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
+                await asyncio.sleep(self.delay)
+            except Exception as e:
+                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+                await asyncio.sleep(5)
+
+
+
+
+class Billgates5(MessageBroadcaster):
+    def __init__(self, db_manager):
+        super().__init__(db_manager, delay_seconds=47400)  
 
     def get_photo_url(self):
         return "https://i.postimg.cc/7L30j63R/photo-2025-03-06-15-02-56.jpg"
@@ -572,7 +770,7 @@ class Billgates5(MessageBroadcaster):
 
 class Billgates4(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=36000)  # Délai de 10 heures (36000 secondes)
+        super().__init__(db_manager, delay_seconds=39000)  
 
     def get_photo_url(self):
         return "https://i.postimg.cc/6QJCHRvR/photo-2025-03-07-08-13-47.jpg"
@@ -636,6 +834,10 @@ class BotHandler:
         self.bill_gates3 = Billgates3(db_manager)
         self.bill_gates4 = Billgates4(db_manager)
         self.bill_gates5 = Billgates5(db_manager)
+        self.bill_gates6 = Billgates6(db_manager)
+        self.bill_gates7 = Billgates7(db_manager)
+        self.bill_gates8 = Billgates8(db_manager)
+        self.bill_gates9 = Billgates9(db_manager)
         self.invitation_broadcaster = InvitationBroadcaster(db_manager)
         self.running = True
         self.video_sent = False 
@@ -742,6 +944,10 @@ class BotHandler:
         asyncio.create_task(self.bill_gates3.broadcast(context))
         asyncio.create_task(self.bill_gates4.broadcast(context))
         asyncio.create_task(self.bill_gates5.broadcast(context))
+        asyncio.create_task(self.bill_gates6.broadcast(context))
+        asyncio.create_task(self.bill_gates7.broadcast(context))
+        asyncio.create_task(self.bill_gates8.broadcast(context))
+        asyncio.create_task(self.bill_gates9.broadcast(context))
         asyncio.create_task(self.promo_broadcaster.broadcast(context))
         asyncio.create_task(self.invitation_broadcaster.broadcast(context))
 
@@ -754,6 +960,10 @@ class BotHandler:
         self.bill_gates3.running = False
         self.bill_gates4.running = False
         self.bill_gates5.running = False
+        self.bill_gates6.running = False
+        self.bill_gates7.running = False
+        self.bill_gates8.running = False
+        self.bill_gates9.running = False
         self.marathon_broadcaster.running = False
         self.promo_broadcaster.running = False
         self.invitation_broadcaster.running = False
