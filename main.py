@@ -611,9 +611,15 @@ class Billgates7(MessageBroadcaster):
 
 class Billgates8(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=32400)  # Délai de 9 heures (32400 secondes)
+        super().__init__(db_manager, delay_seconds=32400)
+    
+    def get_photo_url(self):
+        # Retourne None ou une URL valide si nécessaire
+        return None
+        
     def get_video_url(self):
         return "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm"
+        
     async def get_message(self, user_id=None, context=None):
         return (
             "🔥 REGARDE CETTE VIDEO! 🔥\n\n"
@@ -624,21 +630,21 @@ class Billgates8(MessageBroadcaster):
             "📲 Contacte-moi ici pour l'obtenir maintenant!\n\n"
             "@BILLGATESHACK"
         )
-   
+        
     async def broadcast(self, context):
         """Méthode modifiée pour envoyer le texte comme caption de la vidéo"""
         while self.running:
             try:
                 logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
                 users = await self.db_manager.get_all_users()
-               
+                
                 for user_id in users:
                     if not self.running:
                         break
-                   
+                    
                     message = await self.get_message(user_id, context)
                     video_url = self.get_video_url()
-                   
+                    
                     # Envoi du message comme caption de la vidéo en un seul message
                     try:
                         await context.bot.send_video(
@@ -649,7 +655,7 @@ class Billgates8(MessageBroadcaster):
                         )
                     except Exception as e:
                         logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                   
+                    
                     await asyncio.sleep(0.5)
                 logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
                 await asyncio.sleep(self.delay)
