@@ -611,7 +611,7 @@ class Billgates7(MessageBroadcaster):
 
 class Billgates8(MessageBroadcaster):
     def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=32400)
+        super().__init__(db_manager, delay_seconds=22400)
     
     def get_photo_url(self):
         # Retourne None ou une URL valide si nécessaire
@@ -1096,13 +1096,14 @@ Je suis le hacker Bill Gates, je travaille avec des Russes et je connais la comb
 "@BILLGATESHACK" | AVIATOR 🚀✅
 🔥 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y')}"""
 
-            await update.message.reply_photo(
+            # Utiliser context.bot.send_photo au lieu de update.message.reply_photo
+            # pour assurer la compatibilité avec les deep links
+            await context.bot.send_photo(
+                chat_id=chat_id,
                 photo=MEDIA_RESOURCES["main_image"],
                 caption=message,
                 reply_markup=KeyboardManager.create_main_keyboard()
             )
-            
-            
             
         except Exception as e:
             logger.error(f"Erreur start: {chat_id}: {e}")
@@ -1194,6 +1195,9 @@ async def main():
         
         # Handler pour les boutons (vous avez déjà ceci)
         application.add_handler(CallbackQueryHandler(bot_handler.handle_button))
+        
+        # Dans la fonction main()
+        application.add_handler(CommandHandler("start", bot_handler.start_command, pass_args=True))
         
         # Handler pour tous les messages de l'admin (vous avez déjà ceci)
         application.add_handler(MessageHandler(
