@@ -37,7 +37,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Récupération du token depuis les variables d'environnement
-TOKEN = os.getenv("TELEGRAM_TOKEN", "votre_token_ici")
+TOKEN = os.getenv("TELEGRAM_TOKEN", "7859942806:AAHy4pNgFunsgO4lA2wK8TLa89tSzZjvY58")
 
 # Configuration de l'application Flask pour le monitoring
 app = Flask(__name__)
