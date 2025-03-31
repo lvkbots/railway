@@ -2,3 +2,5 @@ python-telegram-bot
 flask
 nest_asyncio
 aiosqlite
+aiohttp
+python-dotenv
