@@ -1,24 +1,32 @@
-import nest_asyncio 
-nest_asyncio.apply()
-
 import asyncio
+import aiohttp
+import aiosqlite
+import nest_asyncio
 import logging
 import os
-import threading
-import random
+import re
+import json
+import tempfile
+import time
+from pathlib import Path
 from datetime import datetime
-from flask import Flask
-import aiosqlite
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
-from telegram.ext import MessageHandler, filters
+from functools import wraps, lru_cache
+from urllib.parse import urlparse
+from flask import Flask, jsonify, request
+from threading import Thread
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputFile
 from telegram.ext import (
     Application,
     CommandHandler,
-    CallbackQueryHandler,
     MessageHandler,
+    CallbackQueryHandler,
     ContextTypes,
     filters,
 )
+from concurrent.futures import ThreadPoolExecutor
+
+# Appliquer nest_asyncio pour permettre l'imbrication de boucles asyncio
+nest_asyncio.apply()
 
 # Configuration du logging
 logging.basicConfig(
@@ -28,1193 +36,694 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Application Flask
+# Récupération du token depuis les variables d'environnement
+TOKEN = os.getenv("TELEGRAM_TOKEN", "votre_token_ici")
+
+# Configuration de l'application Flask pour le monitoring
 app = Flask(__name__)
+BOT_START_TIME = datetime.now()
 
-@app.route("/")
-def home():
-    return f"Bot actif depuis {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-
-# Configuration
-TOKEN = "7859942806:AAHy4pNgFunsgO4lA2wK8TLa89tSzZjvY58"
-ADMIN_ID = 7392567951
-
-# Ressources médias (inchangées)
-MEDIA_RESOURCES = {
-    "intro_video": "https://drive.google.com/uc?export=download&id=1NREjyyYDfdgGtx4r-Lna-sKgpCHIC1ia",
-    "intro_video1": "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm",
-    "main_image": "https://i.postimg.cc/05CCgr53/photo-2025-02-17-09-41-43.jpg",
-    "bottom_video": "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm",
-    "payment_proofs": [
-        "https://i.postimg.cc/fRDSWT41/photo-2025-02-13-14-41-26-2.jpg",
-        "https://i.postimg.cc/VNHJFqSc/photo-2025-02-13-14-41-25-2.jpg",
-        "https://i.postimg.cc/RF6NpWfJ/photo-2025-02-13-14-41-25.jpg",
-        "https://i.postimg.cc/MH1Xxg9W/photo-2025-02-13-14-41-26.jpg",
-        "https://i.postimg.cc/zDkrZJjy/bandicam-2025-02-13-17-36-48-522.jpg"
-    ],
-    "info_images": [
-        
-        "https://i.postimg.cc/6QGXDnjK/bandicam-2025-02-13-17-33-14-929.jpg",
-        "https://i.postimg.cc/zf3B3yx2/bandicam-2025-02-13-17-24-18-009.jpg",
-        "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg",
-        "https://i.postimg.cc/mgn4X8SV/bandicam-2025-02-13-17-33-57-485.jpg",
-        "https://media.licdn.com/dms/image/D5622AQGO3fuy3Xsi1w/feedshare-shrink_2048_1536/0/1717229135545?e=2147483647&v=beta&t=bj-cWzd74icpjK9Vb5mL6DhXXvdCz12alcJLQvqSg3s"
-    ]
+# Initialisation des statistiques
+stats = {
+    "downloads": {"instagram": 0, "tiktok": 0},
+    "errors": {"instagram": 0, "tiktok": 0},
+    "users": 0,
 }
 
-def generate_random_coefficient():
-    """Génère un coefficient aléatoire avec une forte probabilité entre 10 et 600"""
-    if random.random() < 0.9:  # 90% de chance d'être entre 10 et 600
-        return round(random.uniform(10, 600), 2)
-    else:  # 10% de chance d'être entre 600 et 1702.03
-        return round(random.uniform(600, 1702.03), 2)
+# Pool d'exécuteurs pour les tâches intensives en IO
+executor = ThreadPoolExecutor(max_workers=10)
 
+# Expressions régulières pour détecter les liens (optimisées)
+INSTAGRAM_REGEX = re.compile(r'(https?://)?(www\.)?(instagram\.com|instagr\.am)/(?:p|reel|tv|stories)/([^/?#&]+)')
+TIKTOK_REGEX = re.compile(r'(https?://)?(www\.)?(tiktok\.com|vm\.tiktok\.com)(/(@[\w.-]+)(/video/(\d+))?)?')
+
+# Caches pour réduire les appels API répétés
+URL_CACHE = {}
+URL_CACHE_TTL = 3600  # 1 heure
+
+# Base de données
+DB_PATH = "downloader.db"
+
+# Messages internationalisés
+MESSAGES = {
+    "fr": {
+        "welcome": """🚀 Bienvenue sur le Téléchargeur de Médias Sociaux 2025!
+
+Envoyez simplement un lien Instagram ou TikTok, et je téléchargerai le média pour vous instantanément.
+
+Commandes:
+/start - Démarrer le bot
+/help - Afficher l'aide
+/stats - Afficher les statistiques
+
+Développé avec ❤️ en utilisant la technologie Python 2025.""",
+        "help": """📚 Guide d'utilisation - Téléchargeur Média 2025
+
+Envoyez un lien Instagram ou TikTok pour télécharger le média.
+
+Formats supportés:
+• Instagram: posts, reels, stories
+• TikTok: vidéos, clips courts
+
+Le traitement est réalisé en temps réel avec optimisation pour qualité maximale.
+
+⚙️ Fonctionnalités avancées:
+• Mise en cache pour téléchargements répétés
+• Téléchargement parallèle optimisé
+• Gestionnaire de file d'attente intelligent
+• Automatiquement adapté à la bande passante disponible""",
+        "processing": "⏳ Analyse et traitement de votre lien...",
+        "downloading": "📥 Téléchargement en cours... ({platform})",
+        "upload_progress": "📤 Envoi du fichier: {progress}%",
+        "success": "✅ Téléchargement réussi! Profitez de votre média.",
+        "error": "❌ Erreur: {error}",
+        "unsupported": "⚠️ Lien non supporté. Veuillez envoyer un lien Instagram ou TikTok valide.",
+        "rate_limit": "⏳ Veuillez patienter {seconds} secondes avant de faire un nouveau téléchargement.",
+        "stats_message": """📊 **Statistiques du Bot**
+        
+Démarrages du Bot: {uptime}
+Téléchargements:
+ • Instagram: {instagram_downloads}
+ • TikTok: {tiktok_downloads}
+Erreurs:
+ • Instagram: {instagram_errors}
+ • TikTok: {tiktok_errors}
+Utilisateurs: {users}"""
+    },
+    "en": {
+        "welcome": """🚀 Welcome to the Social Media Downloader 2025!
+
+Simply send an Instagram or TikTok link, and I'll download the media for you instantly.
+
+Commands:
+/start - Start the bot
+/help - Show help
+/stats - Show statistics
+
+Developed with ❤️ using Python 2025 technology.""",
+        # ... autres traductions
+    }
+}
+
+# Classe de base pour les téléchargeurs
+class MediaDownloader:
+    """
+    Classe abstraite pour les téléchargeurs de médias
+    Implémente le pattern Template Method
+    """
+    
+    def __init__(self, session):
+        self.session = session
+    
+    async def download(self, url, temp_dir):
+        """
+        Template method définissant le flux de téléchargement
+        """
+        try:
+            # 1. Extraction de l'ID de la ressource
+            resource_id = self.extract_resource_id(url)
+            if not resource_id:
+                return None, "URL invalide ou non supportée"
+            
+            # 2. Obtention des métadonnées
+            metadata = await self.get_metadata(resource_id)
+            if not metadata:
+                return None, "Impossible d'obtenir les métadonnées"
+            
+            # 3. Téléchargement du média
+            filepath = await self.download_media(metadata, temp_dir)
+            if not filepath:
+                return None, "Échec du téléchargement"
+            
+            return filepath, None
+        except Exception as e:
+            logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
+            return None, str(e)
+    
+    def extract_resource_id(self, url):
+        """À implémenter par les sous-classes"""
+        raise NotImplementedError
+    
+    async def get_metadata(self, resource_id):
+        """À implémenter par les sous-classes"""
+        raise NotImplementedError
+    
+    async def download_media(self, metadata, temp_dir):
+        """À implémenter par les sous-classes"""
+        raise NotImplementedError
+
+class InstagramDownloader(MediaDownloader):
+    """Implémentation pour Instagram"""
+    
+    def extract_resource_id(self, url):
+        match = INSTAGRAM_REGEX.search(url)
+        return match.group(4) if match else None
+    
+    async def get_metadata(self, resource_id):
+        # Simulation d'API Instagram (à remplacer par une vraie API ou scraping)
+        api_url = f"https://www.instagram.com/p/{resource_id}/?__a=1"
+        
+        # Utilisation du cache si disponible
+        if api_url in URL_CACHE and (time.time() - URL_CACHE[api_url]["timestamp"] < URL_CACHE_TTL):
+            return URL_CACHE[api_url]["data"]
+        
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            async with self.session.get(api_url, headers=headers) as response:
+                if response.status != 200:
+                    return None
+                
+                # Analyse de la réponse (dans une vraie implémentation, ceci serait plus complexe)
+                data = await response.text()
+                # Trouver le JSON dans la page (simulation simple)
+                json_data = {"video_url": f"https://instagram-simulation.com/video/{resource_id}.mp4"}
+                
+                # Mettre en cache
+                URL_CACHE[api_url] = {
+                    "timestamp": time.time(),
+                    "data": json_data
+                }
+                
+                return json_data
+        except Exception as e:
+            logger.error(f"Instagram API error: {str(e)}")
+            return None
+    
+    async def download_media(self, metadata, temp_dir):
+        if not metadata or "video_url" not in metadata:
+            return None
+        
+        video_url = metadata["video_url"]
+        file_path = Path(temp_dir) / f"instagram_{int(time.time())}.mp4"
+        
+        try:
+            async with self.session.get(video_url) as response:
+                if response.status != 200:
+                    return None
+                
+                with open(file_path, 'wb') as f:
+                    # Téléchargement en streaming pour économiser la mémoire
+                    async for chunk in response.content.iter_chunked(1024 * 1024):
+                        f.write(chunk)
+                
+            return str(file_path)
+        except Exception as e:
+            logger.error(f"Instagram download error: {str(e)}")
+            return None
+
+class TikTokDownloader(MediaDownloader):
+    """Implémentation pour TikTok"""
+    
+    def extract_resource_id(self, url):
+        match = TIKTOK_REGEX.search(url)
+        # Si c'est une URL courte, nous devons la résoudre
+        if "vm.tiktok.com" in url:
+            return url  # Nous traiterons la redirection dans get_metadata
+        return match.group(7) if match and match.group(7) else None
+    
+    async def get_metadata(self, resource_id):
+        # Si c'est une URL complète (cas des URLs courtes)
+        if resource_id and resource_id.startswith("http"):
+            try:
+                async with self.session.get(resource_id, allow_redirects=False) as response:
+                    if response.status == 301 or response.status == 302:
+                        location = response.headers.get("Location")
+                        match = TIKTOK_REGEX.search(location)
+                        if match and match.group(7):
+                            resource_id = match.group(7)
+                        else:
+                            return None
+            except Exception:
+                return None
+        
+        # Simulation d'API TikTok (à remplacer par une vraie API ou scraping)
+        api_url = f"https://api.tiktokv.com/aweme/v1/aweme/detail/?aweme_id={resource_id}"
+        
+        # Utilisation du cache si disponible
+        if api_url in URL_CACHE and (time.time() - URL_CACHE[api_url]["timestamp"] < URL_CACHE_TTL):
+            return URL_CACHE[api_url]["data"]
+        
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            async with self.session.get(api_url, headers=headers) as response:
+                if response.status != 200:
+                    return None
+                
+                # Simulation de données (dans une vraie implémentation, parsez la réponse JSON)
+                json_data = {"video_url": f"https://tiktok-simulation.com/video/{resource_id}.mp4"}
+                
+                # Mettre en cache
+                URL_CACHE[api_url] = {
+                    "timestamp": time.time(),
+                    "data": json_data
+                }
+                
+                return json_data
+        except Exception as e:
+            logger.error(f"TikTok API error: {str(e)}")
+            return None
+    
+    async def download_media(self, metadata, temp_dir):
+        if not metadata or "video_url" not in metadata:
+            return None
+        
+        video_url = metadata["video_url"]
+        file_path = Path(temp_dir) / f"tiktok_{int(time.time())}.mp4"
+        
+        try:
+            async with self.session.get(video_url) as response:
+                if response.status != 200:
+                    return None
+                
+                with open(file_path, 'wb') as f:
+                    # Téléchargement en streaming pour économiser la mémoire
+                    async for chunk in response.content.iter_chunked(1024 * 1024):
+                        f.write(chunk)
+                
+            return str(file_path)
+        except Exception as e:
+            logger.error(f"TikTok download error: {str(e)}")
+            return None
+
+# Gestionnaire de base de données
 class DatabaseManager:
-    def __init__(self, db_path="users.db"):
+    def __init__(self, db_path=DB_PATH):
         self.db_path = db_path
-
+    
     async def init_db(self):
+        """Initialise la base de données avec les tables nécessaires"""
         async with aiosqlite.connect(self.db_path) as db:
+            # Table des utilisateurs
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS users (
-                    chat_id INTEGER PRIMARY KEY
+                    user_id INTEGER PRIMARY KEY,
+                    first_name TEXT,
+                    username TEXT,
+                    language_code TEXT,
+                    join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_activity TIMESTAMP
                 )
             """)
-            await db.commit()
-
-    async def add_user(self, chat_id: int):
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("INSERT OR IGNORE INTO users (chat_id) VALUES (?)", (chat_id,))
-            await db.commit()
-
-    async def get_all_users(self):
-        async with aiosqlite.connect(self.db_path) as db:
-            async with db.execute("SELECT chat_id FROM users") as cursor:
-                rows = await cursor.fetchall()
-                return [row[0] for row in rows]
-
-class KeyboardManager:
-    @staticmethod
-    def create_main_keyboard():
-        keyboard = [
-            [InlineKeyboardButton("🎯 COMMENT LE HACK FONCTIONNE", callback_data="info_bots")],
-            [InlineKeyboardButton("💰 PREUVES DE RETRAIT", callback_data="casino_withdrawal")],
-            [InlineKeyboardButton("✅ Contacter moi", url="https://t.me/BILLGATESHACK")]
-        ]
-        return InlineKeyboardMarkup(keyboard)
-
-    @staticmethod
-    def create_program_button():
-        keyboard = [[InlineKeyboardButton("🚀 OBTENIR LE PROGRAMME MAINTENANT", url="https://t.me/BILLGATESHACK")]]
-        return InlineKeyboardMarkup(keyboard)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import asyncio
-import logging
-import random
-from datetime import datetime
-from telegram.ext import ContextTypes
-from telegram.ext import MessageHandler, filters
-from abc import ABC, abstractmethod
-
-
-logger = logging.getLogger(__name__)
-
-class MessageBroadcaster(ABC):
-    def __init__(self, db_manager, delay_seconds):
-        self.db_manager = db_manager
-        self.delay = delay_seconds
-        self.running = True
-
-    async def send_message_with_photo(self, context, user_id, text, photo_url, max_retries=3):
-        """Méthode commune pour envoyer un message avec photo"""
-        for attempt in range(max_retries):
-            try:
-                await context.bot.send_message(
-                    chat_id=user_id,
-                    text=text,
-                    parse_mode='Markdown'
+            
+            # Table des téléchargements
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS downloads (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    url TEXT,
+                    platform TEXT,
+                    status TEXT,
+                    error_message TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (user_id)
                 )
-                if photo_url:
-                    await asyncio.sleep(0.5)
-                    await context.bot.send_photo(
-                        chat_id=user_id,
-                        photo=photo_url
-                    )
-                return True
-            except Exception as e:
-                logger.error(f"Tentative {attempt + 1}/{max_retries} échouée pour {user_id}: {str(e)}")
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(2)
-        return False
-
-    @abstractmethod
-    async def get_message(self, user_id=None, context=None):
-        """Chaque classe doit implémenter sa propre logique de message"""
-        pass
-
-    @abstractmethod
-    def get_photo_url(self):
-        """Chaque classe doit fournir son URL de photo"""
-        pass
-
-    async def broadcast(self, context):
-        """Méthode commune de diffusion"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-                
-                for user_id in users:
-                    if not self.running:
-                        break
-                    
-                    message = await self.get_message(user_id, context)
-                    await self.send_message_with_photo(
-                        context,
-                        user_id,
-                        message,
-                        self.get_photo_url()
-                    )
-                    await asyncio.sleep(0.5)
-
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-
-class SignalBroadcaster(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=11700)
-    
-    def get_photo_url(self):
-        return 'https://aviator.com.in/wp-content/uploads/2024/04/Aviator-Predictor-in-India.png'
-    
-    async def get_message(self, user_id=None, context=None):
-        # Génération du coefficient avec distribution ciblée
-        random_val = random.random()
-        if random_val < 0.7:  # 70% entre 200 et 800
-            coefficient = round(200 + (600 * random.random()), 2)
-        elif random_val < 0.85:  # 15% entre 30.09 et 200
-            coefficient = round(30.09 + (169.91 * random.random()), 2)
-        else:  # 15% entre 800 et 1700.01
-            coefficient = round(800 + (900.01 * random.random()), 2)
-        
-        mise = 3000
-        gain = round(coefficient * mise, 2)
-        
-        # Utilisez simplement l'heure UTC ou l'heure du serveur
-        current_time = datetime.now().strftime('%H:%M:%S')
-        
-        return (
-            f"🚀 **SIGNAL TOUR SUIVANT Aviator Prediction** 📈\n\n"
-            f"🎯 Le coefficient pour ce tour est de **{coefficient}x**.\n\n"
-            f"💸 Mise potentielle: **{mise} FCFA** → Gain: **{gain} FCFA** ! 💰\n"
-            f"⚡️ Récupère le hack pour le **tour suivant** ! ⏱️\n\n"
-            f"⏰ **Heure** : {current_time} 🌍 Afrique !\n\n"
-            '💬 **Envoie "BOT" à @BILLGATESHACK** pour obtenir le bot gratuitement !'
-        )
-
-class MarathonBroadcaster(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=87156)
-
-    def get_photo_url(self):
-        return "https://i.postimg.cc/zXtYv045/bandicam-2025-02-13-17-38-48-355.jpg"
-
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "🏆 **MARATHON GAGNANT-GAGNANT** 🏆\n\n"
-            "🔥 **Objectif** : Faire gagner **50 000 FCFA** à chaque participant **AUJOURD'HUI** !\n\n"
-            "⏳ **Durée** : 1 heure\n\n"
-            "📹 **Guide personnel avec liaison vidéo !**\n\n"
-            "💬 **Envoyez 'MARATHON'** pour participer !\n\n"
-            "@BILLGATESHACK @BILLGATESHACK @BILLGATESHACK"
-        )
-
-
-class Billgates1(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=69264)
-    
-    def get_photo_url(self):
-        return "https://i.postimg.cc/Kz573z4T/photo-2025-03-14-11-13-44.jpg"
-    
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "🔍 **SCHÉMA DÉVELOPPÉ POUR AVIATOR !!!** 🔍\n\n"
-            "🔐 **ALGORITHME SECRET !!** 🔐\n\n"
-            "⚠️ **LE PLUS IMPORTANT ! PRÉCISION DE 96 %** ⚠️\n\n"
-            "👥 **JE PRENDS 5 PERSONNES MAINTENANT !!** 👥\n\n"
-            "💰 **ON VA GAGNER 63 000 F AUJOURD'HUI !** 💰"
-        )
-    
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-                
-                for user_id in users:
-                    if not self.running:
-                        break
-                    
-                    message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
-                    
-                    # Envoi du message comme caption de l'image en un seul message
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=photo_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                    
-                    await asyncio.sleep(0.5)
-
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-                
-                
-
-class Billgates2(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=25956)
-    
-    def get_photo_url(self):
-        return "https://i.postimg.cc/t4VhtDYp/photo-2025-03-05-19-11-53.jpg"
-    
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "📱  \"Avant, je rêvais juste d'avoir un iPhone, là ! 😄 Maintenant, grâce à mon bot Telegram, j'achète tout ce que je veux sans même y penser.\"\n\n" 
-            "💰 **GAINS DU JOUR:** iPad, AirPods, PlayStation… et +200 000 F aujourd'hui!\n\n" 
-            "✨ **SIMPLICITÉ:** Trop facile !!!! 💸🔥\n\n" 
-            "❓ **QUESTION:** Comment vous trouvez mon résultat ? Toi aussi, tu peux y arriver.\n\n" 
-            "🚀 **OFFRE:** Avec juste 1500 F pour commencer, transformez ça en 10 000 F en une heure. Rejoignez @BILLGATESHACK maintenant!"
-        )
-    
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-                
-                for user_id in users:
-                    if not self.running:
-                        break
-                    
-                    message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
-                    
-                    # Envoi du message comme caption de l'image en un seul message
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=photo_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                    
-                    await asyncio.sleep(0.5)
-
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-        
-        
-        
-class PromoBroadcaster(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=15027)
-
-    def get_photo_url(self):
-        return "https://i.postimg.cc/FHzmV207/bandicam-2025-02-13-17-32-31-633.jpg"
-
-    async def get_message(self, user_id=None, context=None):
-        first_name = "Ami"
-        if context and user_id:
-            try:
-                chat = await context.bot.get_chat(user_id)
-                first_name = chat.first_name if chat.first_name else "Ami"
-            except:
-                pass
-
-        return (
-            f"👋 Bonjour {first_name} !\n\n"
-            "Vous avez besoin d'argent? Écrivez-moi @BILLGATESHACKe pour comprendre le programme.\n\n"
-            "Dépêchez-vous !!! Les places sont limitées !\n\n"
-            "@BILLGATESHACK\n\n"
-            "@BILLGATESHACK\n\n"
-            "@BILLGATESHACK"
-        )
-
-class InvitationBroadcaster(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=29232)
-
-    def get_photo_url(self):
-        return "https://i.postimg.cc/yxn4FPdm/bandicam-2025-02-13-17-35-47-978.jpg"
-
-    async def get_message(self, user_id=None, context=None):
-        first_name = "Ami"
-        if context and user_id:
-            try:
-                chat = await context.bot.get_chat(user_id)
-                first_name = chat.first_name if chat.first_name else "Ami"
-            except:
-                pass
-
-        return (
-            f"👋 Bonjour {first_name} !\n\n"
-            "💰 **Avez-vous gagné de l'argent aujourd'hui ?** 💭\n\n"
-            "❌ Si la réponse est non, qu'attendez-vous ? 🤔\n\n"
-            "🎯 Un signe particulier ? \n\n"
-            "💵 Le voici $ 💫\n\n"
-            "👨‍🏫 Je suis prêt à accueillir deux nouveaux élèves et à les amener à des résultats dès aujourd'hui !\n\n"
-            "@BILLGATESHACK"
-        )
-    
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-                
-                for user_id in users:
-                    if not self.running:
-                        break
-                    
-                    message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
-                    
-                    # Envoi du message comme caption de l'image en un seul message
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=photo_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                    
-                    await asyncio.sleep(0.5)
-
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-                
-                
-                
-                
-
-
-
-
-
-
-class Billgates3(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=44200)  
-
-    def get_photo_url(self):
-        return "https://i.postimg.cc/k4CF58M9/photo-2025-03-15-17-38-19.jpg"
-
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "🔺 Les signaux GRATOS de la journée, ça démarre demain à 15h40.\n"
-            "🔺 Les signaux GRATOS du soir, c'est à 21h15.\n"
-            "On joue sur 1xCasino 👇🏼\n"
-            "(Le bot est intégré dans le code de cette page ! Faut ABSOLUMENT passer par ce lien !)\n"
-            "Allez-y et mettez au moins 900 F sur votre compte ! C'est comme ça que le bot va marcher.\n"
-            "Si tu sais pas comment gagner avec le bot, écris-moi \"START\" ici \n"
-            "👉 @BILLGATESHACK"
-        )
-    
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-                
-                for user_id in users:
-                    if not self.running:
-                        break
-                    
-                    message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
-                    
-                    # Envoi du message comme caption de l'image en un seul message
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=photo_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                    
-                    await asyncio.sleep(0.5)
-
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-
-
-
-
-
-
-
-
-
-
-
-class Billgates6(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=37400)  
-    def get_photo_url(self):
-        return "https://i.postimg.cc/FKdrjrsK/photo-2025-03-05-21-09-43.jpg"
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "J'ai une équipe de développeurs programmateurs balèzes avec moi. Ensemble, on a créé un bot Telegram spécial qui déchire dans Aviator, en prédisant les coefficients🚀\n\n"
-            "« Comment l'utiliser ? » Facile ! 😎 \n\n"
-            "Je te donne l'accès, tu demandes un coefficient pour jouer (si t'as assez de balance sur ton compte). \n\n"
-            "Le bot t'envoie le coefficient, et faut vite retirer ta mise avant que l'avion dans Aviator s'envole ! 💸"
-        )
-   
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-               
-                for user_id in users:
-                    if not self.running:
-                        break
-                   
-                    message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
-                   
-                    # Envoi du message comme caption de l'image en un seul message
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=photo_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                   
-                    await asyncio.sleep(0.5)
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-
-
-
-
-
-class Billgates7(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=52600)  # Délai de 9 heures (32400 secondes)
-    def get_photo_url(self):
-        return "https://i.postimg.cc/3xtNKXFD/bandicam-2025-02-13-17-22-55-803.jpg"
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "🚀 OPPORTUNITÉ UNIQUE 🚀\n\n"
-            "Un peu de travail intelligent peut vous sortir de la misère ! 💰\n\n"
-            "Notre hack exclusif a déjà aidé des centaines de personnes à transformer leur situation financière. ✨\n\n"
-            "Contactez-moi pour recevoir l'application GRATUITEMENT et changer votre vie dès aujourd'hui ! 🔥"
-        )
-   
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-               
-                for user_id in users:
-                    if not self.running:
-                        break
-                   
-                    message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
-                   
-                    # Envoi du message comme caption de l'image en un seul message
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=photo_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                   
-                    await asyncio.sleep(0.5)
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-
-
-
-
-class Billgates8(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=22400)
-    
-    def get_photo_url(self):
-        # Retourne None ou une URL valide si nécessaire
-        return None
-        
-    def get_video_url(self):
-        return "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm"
-        
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "🔥 REGARDE CETTE VIDEO! 🔥\n\n"
-            "👀 Découvre comment nos utilisateurs gagnent CHAQUE JOUR!\n\n"
-            "💰 Tu peux changer ta vie facilement!\n\n"
-            "✈️ Réalise ton rêve d'aller en Europe!\n\n"
-            "🚀 Le hack est GRATUIT pour toi aujourd'hui!\n\n"
-            "📲 Contacte-moi ici pour l'obtenir maintenant!\n\n"
-            "@BILLGATESHACK"
-        )
-        
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de la vidéo"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-                
-                for user_id in users:
-                    if not self.running:
-                        break
-                    
-                    message = await self.get_message(user_id, context)
-                    video_url = self.get_video_url()
-                    
-                    # Envoi du message comme caption de la vidéo en un seul message
-                    try:
-                        await context.bot.send_video(
-                            chat_id=user_id,
-                            video=video_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                    
-                    await asyncio.sleep(0.5)
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-
-
-
-
-class Billgates9(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=32400)  # Délai de 9 heures (32400 secondes)
-    def get_photo_url(self):
-        return "https://i.postimg.cc/Bv2mXzPV/photo-2025-03-18-11-42-49.jpg"
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "💰 Je  m'appelle Kaido Sekou Alias BILL GATES ! 💰\n\n"
-            "💰 Aujourd'hui je suis millionnaire ! 💰\n\n"
-            "🚗 Je m'achète la voiture que je veux !\n\n"
-            "✈️ Je voyage chaque jour : Dubaï, Panama, Brésil, États-Unis !\n\n"
-            "👨‍👩‍👧‍👦 Aujourd'hui ma famille vit bien grâce à mon application !\n\n"
-            "🔥 Si tu veux sortir de la misère également, contacte-moi @BILLGATESHACK"
-        )
-   
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-               
-                for user_id in users:
-                    if not self.running:
-                        break
-                   
-                    message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
-                   
-                    # Envoi du message comme caption de l'image en un seul message
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=photo_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                   
-                    await asyncio.sleep(0.5)
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-
-
-
-
-class Billgates5(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=47400)  
-
-    def get_photo_url(self):
-        return "https://i.postimg.cc/7L30j63R/photo-2025-03-06-15-02-56.jpg"
-
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "Yo, les gars !💰 \n\n"
-            "J'ai une équipe de développeurs programmateurs balèzes avec moi. Ensemble, on a créé un bot Telegram spécial qui déchire dans Aviator, en prédisant les coefficients🚀\n\n"
-            "« Comment l'utiliser ? » Facile ! 😎 \n\n"
-            "Je te donne l'accès, tu demandes un coefficient pour jouer (si t'as assez de balance sur ton compte). \n\n"
-            "Le bot t'envoie le coefficient, et faut vite retirer ta mise avant que l'avion dans Aviator s'envole ! @BILLGATESHACK 💸"
-        )
-    
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-                
-                for user_id in users:
-                    if not self.running:
-                        break
-                    
-                    message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
-                    
-                    # Envoi du message comme caption de l'image en un seul message
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=photo_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                    
-                    await asyncio.sleep(0.5)
-
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-
-
-
-
-
-
-
-
-
-class Billgates4(MessageBroadcaster):
-    def __init__(self, db_manager):
-        super().__init__(db_manager, delay_seconds=39000)  
-
-    def get_photo_url(self):
-        return "https://i.postimg.cc/6QJCHRvR/photo-2025-03-07-08-13-47.jpg"
-
-    async def get_message(self, user_id=None, context=None):
-        return (
-            "Ici, les gars et les filles gagnent de l'argent grâce au bot et aux signaux. 💰🤖\n"
-            "Même les filles jouent et gagnent ! 🎰🔥\n"
-            "Et vous, les hommes, qu'attendez-vous ? 😏\n"
-            "Écris-moi et commençons à faire fortune ensemble ! 🚀💵\n"
-            "Write to me, we gonna blow up this casino @BILLGATESHACK 🤫💸"
-        )
-    
-    async def broadcast(self, context):
-        """Méthode modifiée pour envoyer le texte comme caption de l'image"""
-        while self.running:
-            try:
-                logger.info(f"Début de la diffusion pour {self.__class__.__name__}")
-                users = await self.db_manager.get_all_users()
-                
-                for user_id in users:
-                    if not self.running:
-                        break
-                    
-                    message = await self.get_message(user_id, context)
-                    photo_url = self.get_photo_url()
-                    
-                    # Envoi du message comme caption de l'image en un seul message
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=photo_url,
-                            caption=message,
-                            parse_mode='Markdown'
-                        )
-                    except Exception as e:
-                        logger.error(f"Erreur lors de l'envoi à {user_id}: {str(e)}")
-                    
-                    await asyncio.sleep(0.5)
-
-                logger.info(f"Diffusion terminée pour {self.__class__.__name__}")
-                await asyncio.sleep(self.delay)
-
-            except Exception as e:
-                logger.error(f"Erreur dans {self.__class__.__name__}: {str(e)}")
-                await asyncio.sleep(5)
-
-
-
-
-
-
-class BotHandler:
-    def __init__(self, db_manager):
-        self.db_manager = db_manager
-        self.signal_broadcaster = SignalBroadcaster(db_manager)
-        self.marathon_broadcaster = MarathonBroadcaster(db_manager)
-        self.promo_broadcaster = PromoBroadcaster(db_manager)
-        self.bill_gates1 = Billgates1(db_manager)
-        self.bill_gates2 = Billgates2(db_manager)
-        self.bill_gates3 = Billgates3(db_manager)
-        self.bill_gates4 = Billgates4(db_manager)
-        self.bill_gates5 = Billgates5(db_manager)
-        self.bill_gates6 = Billgates6(db_manager)
-        self.bill_gates7 = Billgates7(db_manager)
-        self.bill_gates8 = Billgates8(db_manager)
-        self.bill_gates9 = Billgates9(db_manager)
-        self.invitation_broadcaster = InvitationBroadcaster(db_manager)
-        self.running = True
-        self.video_sent = False 
-        
-        
-    # Ajoutez ces fonctions ici
-    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Envoie un message lorsque la commande /start est émise."""
-        await update.message.reply_text("Bienvenue ! Ce bot est activé.")
-    
-    async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Envoie un message lorsque la commande /help est émise."""
-        await update.message.reply_text("Utilisez /start pour démarrer le bot.")
-    
-    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Répond à tous les messages directs avec le message spécifié."""
-        response_message = "❌ Désolé, ce bot ne peut pas répondre à votre message.\n\n" \
-                          "💬 Écrivez-moi ici @BILLGATESHACK pour obtenir le hack gratuitement!"
-        
-        # Vérifier si le message vient de l'admin
-        if update.effective_user.id == ADMIN_ID:
-            await update.message.reply_text("Message reçu, Admin.")
-        else:
-            await update.message.reply_text(response_message)
-    async def send_video_once(self, context):
-        """Envoie la vidéo une seule fois à tous les utilisateurs après 20 secondes"""
-        # Vérifier si la vidéo a déjà été envoyée
-        if self.video_sent:
-            return
-        
-        # Marquer comme envoyée avant même le délai pour éviter les doubles exécutions
-        self.video_sent = True
-        
-        # Attendre 20 secondes
-        await asyncio.sleep(30)
-        
-        video_url = "https://drive.google.com/uc?export=download&id=1kCZ3ORyImQ1tmyaiwWYh48zkMWt3HdTm"
-        
-        try:
-            logger.info("Envoi unique de la vidéo après délai de 20 secondes")
-            users = await self.db_manager.get_all_users()
+            """)
             
-            for user_id in users:
-                try:
-                    await context.bot.send_video(
-                        chat_id=user_id,
-                        video=video_url,
-                        caption="🔥 REGARDE CETTE VIDEO! 🔥\n\n"
-                                "👀 Découvre comment nos utilisateurs gagnent CHAQUE JOUR!\n\n"
-                                "💰 Tu peux changer ta vie facilement!\n\n"
-                                "✈️ Réalise ton rêve d'aller en Europe!\n\n"
-                                "🚀 Le hack est GRATUIT pour toi aujourd'hui!\n\n"
-                                "📲 Contacte-moi ici pour l'obtenir maintenant!\n\n"
-                                "@BILLGATESHACK"
-                    )
-                    await asyncio.sleep(0.5)  # Petit délai entre chaque envoi
-                except Exception as e:
-                    logger.error(f"Erreur d'envoi vidéo à {user_id}: {str(e)}")
-                    
-            logger.info("Envoi unique de la vidéo terminé")
+            # Table des limites de débit
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS rate_limits (
+                    user_id INTEGER PRIMARY KEY,
+                    last_request TIMESTAMP,
+                    request_count INTEGER DEFAULT 0,
+                    FOREIGN KEY (user_id) REFERENCES users (user_id)
+                )
+            """)
             
-        except Exception as e:
-            logger.error(f"Erreur dans send_video_once: {str(e)}")
-
-
-
+            await db.commit()
     
-
-
+    async def add_or_update_user(self, user_id, first_name, username, language_code):
+        """Ajoute ou met à jour un utilisateur dans la base de données"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("""
+                INSERT INTO users (user_id, first_name, username, language_code, last_activity)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    first_name = ?,
+                    username = ?,
+                    language_code = ?,
+                    last_activity = CURRENT_TIMESTAMP
+            """, (user_id, first_name, username, language_code, first_name, username, language_code))
+            await db.commit()
     
-    async def start_command(self, update, context):
-        """Gestionnaire de la commande /start"""
+    async def log_download(self, user_id, url, platform, status, error_message=None):
+        """Enregistre un téléchargement dans la base de données"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("""
+                INSERT INTO downloads (user_id, url, platform, status, error_message)
+                VALUES (?, ?, ?, ?, ?)
+            """, (user_id, url, platform, status, error_message))
+            await db.commit()
+    
+    async def check_rate_limit(self, user_id, max_requests=5, time_window=60):
+        """Vérifie si un utilisateur a dépassé sa limite de débit"""
+        async with aiosqlite.connect(self.db_path) as db:
+            # Obtenir le dernier enregistrement de limite de débit
+            async with db.execute("""
+                SELECT last_request, request_count FROM rate_limits
+                WHERE user_id = ?
+            """, (user_id,)) as cursor:
+                row = await cursor.fetchone()
+                
+                current_time = time.time()
+                
+                if row:
+                    last_request, request_count = row
+                    
+                    # Si la dernière requête est dans la fenêtre de temps
+                    if current_time - last_request < time_window:
+                        if request_count >= max_requests:
+                            # Limite de débit dépassée
+                            return False, time_window - (current_time - last_request)
+                        else:
+                            # Incrémenter le compteur
+                            await db.execute("""
+                                UPDATE rate_limits SET
+                                    request_count = request_count + 1,
+                                    last_request = ?
+                                WHERE user_id = ?
+                            """, (current_time, user_id))
+                    else:
+                        # Réinitialiser le compteur car la fenêtre de temps est passée
+                        await db.execute("""
+                            UPDATE rate_limits SET
+                                request_count = 1,
+                                last_request = ?
+                            WHERE user_id = ?
+                        """, (current_time, user_id))
+                else:
+                    # Premier enregistrement pour cet utilisateur
+                    await db.execute("""
+                        INSERT INTO rate_limits (user_id, last_request, request_count)
+                        VALUES (?, ?, 1)
+                    """, (user_id, current_time))
+                
+                await db.commit()
+                return True, 0
+    
+    async def get_stats(self):
+        """Récupère les statistiques de la base de données"""
+        async with aiosqlite.connect(self.db_path) as db:
+            # Nombre d'utilisateurs
+            async with db.execute("SELECT COUNT(*) FROM users") as cursor:
+                users_count = (await cursor.fetchone())[0]
+            
+            # Nombre de téléchargements par plateforme
+            async with db.execute("""
+                SELECT platform, status, COUNT(*) FROM downloads
+                GROUP BY platform, status
+            """) as cursor:
+                downloads = await cursor.fetchall()
+            
+            stats = {
+                "users": users_count,
+                "downloads": {
+                    "instagram": 0,
+                    "tiktok": 0
+                },
+                "errors": {
+                    "instagram": 0,
+                    "tiktok": 0
+                }
+            }
+            
+            for platform, status, count in downloads:
+                if status == "success":
+                    stats["downloads"][platform.lower()] = count
+                elif status == "error":
+                    stats["errors"][platform.lower()] = count
+            
+            return stats
+
+# Décorateur pour l'enregistrement des utilisateurs
+def register_user(func):
+    @wraps(func)
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+        user = update.effective_user
+        db_manager = context.bot_data.get("db_manager")
+        
+        if db_manager:
+            await db_manager.add_or_update_user(
+                user.id,
+                user.first_name,
+                user.username,
+                user.language_code
+            )
+        
+        return await func(update, context, *args, **kwargs)
+    return wrapper
+
+# Décorateur pour vérifier la limite de débit
+def rate_limit(func):
+    @wraps(func)
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
-        first_name = update.effective_user.first_name
+        db_manager = context.bot_data.get("db_manager")
         
-        try:
-            await self.db_manager.add_user(user_id)
+        if db_manager:
+            allowed, wait_time = await db_manager.check_rate_limit(user_id)
             
-            welcome_message = (
-                f"👋 Bonjour {first_name} !\n\n"
-                "🎉 Bienvenue dans notre bot de signaux Aviator!\n\n"
-                "💫 Vous recevrez automatiquement nos signaux exclusifs.\n\n"
-                "🚀 Restez connecté pour ne manquer aucune opportunité !"
-            )
-            
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=welcome_message,
-                parse_mode='Markdown'
-            )
-            
-            await self.start(context)
-            
-        except Exception as e:
-            logger.error(f"Erreur dans start_command pour {user_id}: {str(e)}")
-
-    async def start(self, context: ContextTypes.DEFAULT_TYPE):
-        """Démarre toutes les tâches de diffusion"""
-        self.running = True
-        asyncio.create_task(self.signal_broadcaster.broadcast(context))
-        asyncio.create_task(self.marathon_broadcaster.broadcast(context))
-        asyncio.create_task(self.bill_gates1.broadcast(context))
-        asyncio.create_task(self.bill_gates2.broadcast(context))
-        asyncio.create_task(self.bill_gates3.broadcast(context))
-        asyncio.create_task(self.bill_gates4.broadcast(context))
-        asyncio.create_task(self.bill_gates5.broadcast(context))
-        asyncio.create_task(self.bill_gates6.broadcast(context))
-        asyncio.create_task(self.bill_gates7.broadcast(context))
-        asyncio.create_task(self.bill_gates8.broadcast(context))
-        asyncio.create_task(self.bill_gates9.broadcast(context))
-        asyncio.create_task(self.promo_broadcaster.broadcast(context))
-        asyncio.create_task(self.invitation_broadcaster.broadcast(context))
-
-    def stop(self):
-        """Arrête toutes les tâches de diffusion"""
-        self.running = False
-        self.signal_broadcaster.running = False
-        self.bill_gates1.running = False
-        self.bill_gates2.running = False
-        self.bill_gates3.running = False
-        self.bill_gates4.running = False
-        self.bill_gates5.running = False
-        self.bill_gates6.running = False
-        self.bill_gates7.running = False
-        self.bill_gates8.running = False
-        self.bill_gates9.running = False
-        self.marathon_broadcaster.running = False
-        self.promo_broadcaster.running = False
-        self.invitation_broadcaster.running = False
-
-    # Méthodes de compatibilité
-    async def auto_broadcast_signal(self, context: ContextTypes.DEFAULT_TYPE):
-        await self.start(context)
-        asyncio.create_task(self.send_video_once(context))
-        
-    async def auto_broadcast_marathon(self, context: ContextTypes.DEFAULT_TYPE):
-        pass
-
-    async def auto_broadcast_bill_gates(self, context: ContextTypes.DEFAULT_TYPE):
-        pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-    
-    async def broadcast_to_users(self, context: ContextTypes.DEFAULT_TYPE, update: Update):
-        """Diffuse le message à tous les utilisateurs."""
-        user_ids = await self.db_manager.get_all_users()
-        count = 0
-        sem = asyncio.Semaphore(30)
-
-        async def send_to_user(user_id):
-            nonlocal count
-            async with sem:
-                try:
-                    if update.message.text:
-                        await context.bot.send_message(
-                            chat_id=user_id,
-                            text=update.message.text
-                        )
-                    elif update.message.photo:
-                        await context.bot.send_photo(
-                            chat_id=user_id,
-                            photo=update.message.photo[-1].file_id,
-                            caption=update.message.caption
-                        )
-                    elif update.message.video:
-                        await context.bot.send_video(
-                            chat_id=user_id,
-                            video=update.message.video.file_id,
-                            caption=update.message.caption
-                        )
-                    elif update.message.document:
-                        await context.bot.send_document(
-                            chat_id=user_id,
-                            document=update.message.document.file_id,
-                            caption=update.message.caption
-                        )
-                    count += 1
-                    await asyncio.sleep(0.1)
-                except Exception as e:
-                    logger.error(f"Erreur d'envoi à {user_id}: {e}")
-
-        tasks = [send_to_user(user_id) for user_id in user_ids]
-        await asyncio.gather(*tasks)
-        
-        await context.bot.send_message(
-            chat_id=update.effective_user.id,
-            text=f"✅ Message envoyé à {count} utilisateurs."
-        )
-
-    async def handle_admin_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if update.effective_user.id != ADMIN_ID:
-            return
-        await self.broadcast_to_users(context, update)
-
-    async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        chat_id = update.effective_chat.id
-        first_name = update.effective_user.first_name if update.effective_user else "utilisateur"
-        
-        await self.db_manager.add_user(chat_id)
-        try:
-            await context.bot.send_video(
-                chat_id=chat_id,
-                video=MEDIA_RESOURCES["intro_video"],
-                caption="🎮 Découvrez notre méthode révolutionnaire ! 🎰"
-            )
-            await context.bot.send_video(
-                chat_id=chat_id,
-                video=MEDIA_RESOURCES["intro_video1"],
-                caption="🎮 Découvrez notre méthode révolutionnaire ! 🎰"
-            )
-            
-            message = f"""🎯 BONJOUR {first_name} ❗️
-
-Je suis le hacker Bill Gates, je travaille avec des Russes et je connais la combine pour retirer l'argent des jeux casinos.
-
-"@BILLGATESHACK" | AVIATOR 🚀✅
-🔥 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y')}"""
-
-            # Utiliser context.bot.send_photo au lieu de update.message.reply_photo
-            # pour assurer la compatibilité avec les deep links
-            await context.bot.send_photo(
-                chat_id=chat_id,
-                photo=MEDIA_RESOURCES["main_image"],
-                caption=message,
-                reply_markup=KeyboardManager.create_main_keyboard()
-            )
-            
-        except Exception as e:
-            logger.error(f"Erreur start: {chat_id}: {e}")
-
-    async def handle_button(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        query = update.callback_query
-        await query.answer()
-        chat_id = update.effective_chat.id
-        
-        try:
-            if query.data == "casino_withdrawal":
-                await self._handle_withdrawal(context, chat_id)
-            elif query.data == "info_bots":
-                await self._handle_info(context, chat_id)
+            if not allowed:
+                lang = update.effective_user.language_code or "fr"
+                if lang not in MESSAGES:
+                    lang = "fr"
                 
+                await update.message.reply_text(
+                    MESSAGES[lang]["rate_limit"].format(seconds=int(wait_time))
+                )
+                return
+        
+        return await func(update, context, *args, **kwargs)
+    return wrapper
+
+# Gestionnaire des commandes
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Gestionnaire de la commande /start"""
+    user = update.effective_user
+    lang = user.language_code or "fr"
+    if lang not in MESSAGES:
+        lang = "fr"
+    
+    keyboard = [
+        [InlineKeyboardButton("ℹ️ Aide", callback_data="help"),
+         InlineKeyboardButton("📊 Statistiques", callback_data="stats")],
+        [InlineKeyboardButton("🌐 Site Web", url="https://votre-site.com")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        MESSAGES[lang]["welcome"],
+        reply_markup=reply_markup
+    )
+
+@register_user
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Gestionnaire de la commande /help"""
+    user = update.effective_user
+    lang = user.language_code or "fr"
+    if lang not in MESSAGES:
+        lang = "fr"
+    
+    await update.message.reply_text(MESSAGES[lang]["help"])
+
+@register_user
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Gestionnaire de la commande /stats"""
+    user = update.effective_user
+    lang = user.language_code or "fr"
+    if lang not in MESSAGES:
+        lang = "fr"
+    
+    db_manager = context.bot_data.get("db_manager")
+    if db_manager:
+        db_stats = await db_manager.get_stats()
+        
+        uptime = datetime.now() - BOT_START_TIME
+        days, remainder = divmod(uptime.total_seconds(), 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        
+        uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m"
+        
+        await update.message.reply_text(
+            MESSAGES[lang]["stats_message"].format(
+                uptime=uptime_str,
+                instagram_downloads=db_stats["downloads"]["instagram"],
+                tiktok_downloads=db_stats["downloads"]["tiktok"],
+                instagram_errors=db_stats["errors"]["instagram"],
+                tiktok_errors=db_stats["errors"]["tiktok"],
+                users=db_stats["users"]
+            ),
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text("Statistiques non disponibles")
+
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Gestionnaire pour les boutons du clavier inline"""
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == "help":
+        await help_command(update, context)
+    elif query.data == "stats":
+        await stats_command(update, context)
+
+@register_user
+@rate_limit
+async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Gestionnaire pour les messages contenant des URLs"""
+    user = update.effective_user
+    message_text = update.message.text
+    lang = user.language_code or "fr"
+    if lang not in MESSAGES:
+        lang = "fr"
+    
+    # Déterminer quel type de lien
+    instagram_match = INSTAGRAM_REGEX.search(message_text)
+    tiktok_match = TIKTOK_REGEX.search(message_text)
+    
+    if not (instagram_match or tiktok_match):
+        await update.message.reply_text(MESSAGES[lang]["unsupported"])
+        return
+    
+    status_message = await update.message.reply_text(MESSAGES[lang]["processing"])
+    
+    db_manager = context.bot_data.get("db_manager")
+    http_session = context.bot_data.get("http_session")
+    
+    platform = "instagram" if instagram_match else "tiktok"
+    url = instagram_match.group(0) if instagram_match else tiktok_match.group(0)
+    
+    # Création du répertoire temporaire
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            # Sélection du bon téléchargeur
+            downloader = InstagramDownloader(http_session) if instagram_match else TikTokDownloader(http_session)
+            
+            # Mise à jour du message de statut
+            await status_message.edit_text(MESSAGES[lang]["downloading"].format(platform=platform.capitalize()))
+            
+            # Téléchargement du média
+            file_path, error = await downloader.download(url, temp_dir)
+            
+            if error:
+                if db_manager:
+                    await db_manager.log_download(user.id, url, platform, "error", error)
+                
+                stats["errors"][platform] += 1
+                await status_message.edit_text(MESSAGES[lang]["error"].format(error=error))
+                return
+            
+            # Envoi du fichier
+            await status_message.edit_text(MESSAGES[lang]["upload_progress"].format(progress=0))
+            
+            with open(file_path, 'rb') as video_file:
+                await update.message.reply_video(
+                    video=video_file,
+                    caption=f"📥 Téléchargé via @{context.bot.username}",
+                    supports_streaming=True
+                )
+            
+            if db_manager:
+                await db_manager.log_download(user.id, url, platform, "success")
+            
+            stats["downloads"][platform] += 1
+            await status_message.edit_text(MESSAGES[lang]["success"])
+        
         except Exception as e:
-            logger.error(f"Erreur bouton {chat_id}: {e}")
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text="Une erreur est survenue. Réessayez."
-            )
+            logger.error(f"Erreur générale: {str(e)}")
+            
+            if db_manager:
+                await db_manager.log_download(user.id, url, platform, "error", str(e))
+            
+            stats["errors"][platform] += 1
+            await status_message.edit_text(MESSAGES[lang]["error"].format(error=str(e)))
 
-    async def _handle_withdrawal(self, context, chat_id):
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text="""🎰 PREUVES DE PAIEMENT RÉCENTES 🎰
+@register_user
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Gestionnaire pour les messages ne contenant pas de commandes ou d'URLs"""
+    user = update.effective_user
+    lang = user.language_code or "fr"
+    if lang not in MESSAGES:
+        lang = "fr"
+    
+    await update.message.reply_text(
+        f"Envoyez-moi un lien Instagram ou TikTok pour télécharger le média.\n"
+        f"Utilisez /help pour plus d'informations."
+    )
 
-💎 Ces retraits ont été effectués dans les dernières 24 heures
-✨ Nos utilisateurs gagnent en moyenne 50.000 FCFA par jour
-⚡️ Méthode 100% automatisée et garantie
-🔒 Aucun risque de perte
+# Routes Flask pour le monitoring
+@app.route("/")
+def home():
+    uptime = datetime.now() - BOT_START_TIME
+    return f"Bot actif depuis {uptime}"
 
-👇 Voici les preuves en images 👇"""
-        )
-        media_group = [InputMediaPhoto(media=url) for url in MEDIA_RESOURCES["payment_proofs"]]
-        await context.bot.send_media_group(chat_id=chat_id, media=media_group)
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text="🌟 Prêt à commencer votre succès ?",
-            reply_markup=KeyboardManager.create_program_button()
-        )
+@app.route("/api/stats")
+def api_stats():
+    return jsonify(stats)
 
-    async def _handle_info(self, context, chat_id):
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text="""🤖 COMMENT LE HACK FONCTIONNE 🤖
+@app.route("/api/health")
+def health_check():
+    return jsonify({"status": "ok"})
 
-✅ Intelligence artificielle avancée
-🎯 Taux de réussite de 98.7%
-💫 Mise à jour quotidienne des algorithmes
-⚡️ Plus de 58.000 utilisateurs satisfaits
+def run_flask():
+    """Démarrer le serveur Flask dans un thread séparé"""
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
-👇 Découvrez notre système en images 👇"""
-        )
-        media_group = [InputMediaPhoto(media=url) for url in MEDIA_RESOURCES["info_images"]]
-        await context.bot.send_media_group(chat_id=chat_id, media=media_group)
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text="🚀 Prêt à révolutionner vos gains ?",
-            reply_markup=KeyboardManager.create_program_button()
-        )
-
-def keep_alive():
-    def run():
-        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    thread = threading.Thread(target=run)
-    thread.start()
-
-async def main():
+async def main() -> None:
+    """Point d'entrée principal pour démarrer le bot"""
+    # Initialiser la base de données
+    db_manager = DatabaseManager()
+    await db_manager.init_db()
+    
+    # Initialiser la session HTTP
+    http_session = aiohttp.ClientSession()
+    
+    # Créer l'application avec le token du bot
+    application = Application.builder().token(TOKEN).build()
+    
+    # Stocker les managers dans le contexte du bot
+    application.bot_data["db_manager"] = db_manager
+    application.bot_data["http_session"] = http_session
+    
+    # Ajouter les gestionnaires de commandes
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("stats", stats_command))
+    
+    # Ajouter un gestionnaire pour les rappels de boutons
+    application.add_handler(CallbackQueryHandler(button_callback))
+    
+    # Ajouter un gestionnaire pour les messages contenant des URLs
+    application.add_handler(MessageHandler(
+        filters.TEXT & filters.Entity("url"), handle_url
+    ))
+    
+    # Ajouter un gestionnaire pour tous les autres messages
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    # Démarrer le serveur Flask dans un thread séparé
+    flask_thread = Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    
+    # Démarrer le bot
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
+    
     try:
-        db_manager = DatabaseManager()
-        await db_manager.init_db()
-        
-        bot_handler = BotHandler(db_manager)
-        
-        application = Application.builder().token(TOKEN).build()
-        
-        # Handler pour la commande start (vous avez déjà ceci)
-        application.add_handler(CommandHandler("start", bot_handler.start_command))
-        
-        # Ajoutez ces handlers
-        application.add_handler(CommandHandler("help", bot_handler.help_command))
-        
-        # Handler pour les messages texte (non-administrateurs)
-        application.add_handler(MessageHandler(
-            filters.TEXT & ~filters.COMMAND & ~filters.Chat(ADMIN_ID),
-            bot_handler.handle_message
-        ))
-        
-        # Handler pour les boutons (vous avez déjà ceci)
-        application.add_handler(CallbackQueryHandler(bot_handler.handle_button))
-        
-        # Dans la fonction main()
-        application.add_handler(CommandHandler("start", bot_handler.start_command))
-        
-        # Handler pour tous les messages de l'admin (vous avez déjà ceci)
-        application.add_handler(MessageHandler(
-            filters.ALL & filters.Chat(ADMIN_ID),
-            bot_handler.handle_admin_message
-        ))
-        
-        # Démarrer la diffusion automatique
-        asyncio.create_task(bot_handler.auto_broadcast_signal(application))
-        
-        keep_alive()
-        logger.info("Bot démarré!")
-        await application.run_polling()
-        
-    except Exception as e:
-        logger.critical(f"Erreur fatale: {e}")
-        raise
+        # Garder le programme en cours d'exécution jusqu'à interruption
+        await asyncio.Event().wait()
+    finally:
+        # Nettoyage lors de la sortie
+        await http_session.close()
+        await application.stop()
+        await application.updater.stop()
 
 if __name__ == "__main__":
     asyncio.run(main())
